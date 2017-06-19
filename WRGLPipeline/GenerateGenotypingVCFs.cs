@@ -365,6 +365,7 @@ namespace WRGLPipeline
             snpEffParameters.Append(parameters.getPreferredTranscriptsFile);
             snpEffParameters.Append(@" ");
             snpEffParameters.Append(@"-noLog "); //sends data back to snpEff; disabled
+            snpEffParameters.Append(@"-formatEff "); // for newer SNPEff versions, enables older EFF= format annotations that are pipeline-compatible.
             snpEffParameters.Append(analysisDir);
             snpEffParameters.Append(@"\UnannotatedVariants.vcf");
 
