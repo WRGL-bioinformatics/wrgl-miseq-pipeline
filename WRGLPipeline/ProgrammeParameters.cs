@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -20,7 +20,6 @@ namespace WRGLPipeline
         private string panelScriptsDir;
         private string interpretationsFile;
         private string panelRepo;
-        private bool getData = false; //if we want to run GetData only or a full UploadAndExecute analysis. Set false by default.
 
         //[GenotypingAnalysis]
         private string b37FilePath;
@@ -272,7 +271,5 @@ namespace WRGLPipeline
         public SecureString getNHSMailPassword { get { return NHSMailPassword; } }
         public string getPanelRepo { get { return panelRepo; } }
         public string getGenotypingRepo { get { return genotypingRepo; } }
-        public bool getGetData { get { return getData; } }
-        public bool setGetData { set {getData = value; } } //unlike all the others, we want to set GetData from within the program, not from the parameters
     }
 }
