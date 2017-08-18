@@ -111,13 +111,6 @@ namespace WRGLPipeline
             //write variables file
             WriteVariablesFile();
 
-            //upload and execute pipeline
-            //UploadAndExecute();
-
-            //wait before checking download
-            //AuxillaryFunctions.WriteLog(@"Pipeline idle. Going to sleep...", logFilename, 0, false, parameters);
-            //Thread.Sleep(1000 * 60 * 360); //ms
-
             //poll IRIDIS4 for run completion file
             for (int k = 0; k < 200; ++k)
             {
@@ -147,126 +140,6 @@ namespace WRGLPipeline
             //data not downloaded
             AuxillaryFunctions.WriteLog(@"Data Colletion Timeout.", logFilename, -1, false, parameters);
             throw new TimeoutException();
-        }
-
-        private void UploadAndExecute()
-        {
-            using (Session session = new Session())
-            {
-                TransferOperationResult transferResult;
-                TransferOptions transferOptions = new TransferOptions();
-                transferOptions.TransferMode = TransferMode.Binary;
-                StringBuilder bashCommand = new StringBuilder();
-                string RemoteSampleFolder;
-
-                //set up logging
-                session.SessionLogPath = winscpLogPath;
-
-                try //4a
-                {
-                    //Connect to iridis4a
-                    AuxillaryFunctions.WriteLog(@"Connecting To Iridis4a...", logFilename, 0, false, parameters);
-                    session.Open(iridis4a);
-                }
-                catch (Exception a)
-                {
-                    AuxillaryFunctions.WriteLog(@"Could not connect: " + a.ToString(), logFilename, -1, false, parameters);
-
-                    try //4b
-                    {
-                        //Connect to iridis4b
-                        AuxillaryFunctions.WriteLog(@"Connecting To Iridis4b...", logFilename, 0, false, parameters);
-                        session.Open(iridis4b);
-                    }
-                    catch (Exception b)
-                    {
-                        AuxillaryFunctions.WriteLog(@"Could not connect: " + b.ToString(), logFilename, -1, false, parameters);
-
-                        try //4c
-                        {
-                            //Connect to iridis4c
-                            AuxillaryFunctions.WriteLog(@"Connecting To Iridis4c...", logFilename, 0, false, parameters);
-                            session.Open(iridis4c);
-                        }
-                        catch (Exception c)
-                        {
-                            AuxillaryFunctions.WriteLog(@"Could not connect: " + c.ToString(), logFilename, -1, false, parameters);
-                            throw;
-                        }
-                    }
-                }
-
-                //make remote project directory
-                try
-                {
-                    AuxillaryFunctions.WriteLog(@"Creating remote directory " + scratchDir + runID, logFilename, 0, false, parameters);
-                    session.CreateDirectory(scratchDir + runID);
-                }
-                catch (Exception ex)
-                {
-                    AuxillaryFunctions.WriteLog(@"Could not create remote directory: " + ex.ToString(), logFilename, -1, false, parameters);
-                    throw;
-                }
-
-                //upload preferred transcripts file
-                transferResult = session.PutFiles(parameters.getPreferredTranscriptsFile, scratchDir + runID + @"/", false, transferOptions);
-                transferResult.Check(); // Throw on any error
-
-                //loop over Sample_IDs and upload FASTQs
-                foreach (SampleRecord record in sampleSheet.getSampleRecords)
-                {
-                    if (record.Analysis != @"P"){
-                        continue;
-                    }
-
-                    //output to user
-                    AuxillaryFunctions.WriteLog(@"Uploading data for " + record.Sample_ID, logFilename, 0, false, parameters);
-
-                    RemoteSampleFolder = scratchDir + runID + @"/" + record.Sample_ID;
-
-                    //make remote folder for Sample
-                    session.CreateDirectory(RemoteSampleFolder);
-
-                    //upload R1 FASTQ
-                    transferResult = session.PutFiles(fastqFileNames[record.Sample_ID].Item1, RemoteSampleFolder + @"/", false, transferOptions);
-                    transferResult.Check(); // Throw on any error
-
-                    //upload R2 FASTQ
-                    transferResult = session.PutFiles(fastqFileNames[record.Sample_ID].Item2, RemoteSampleFolder + @"/", false, transferOptions);
-                    transferResult.Check(); // Throw on any error
-
-                    //upload MD5 files
-                    transferResult = session.PutFiles(fastqFileNames[record.Sample_ID].Item1 + @".md5", RemoteSampleFolder + @"/", false, transferOptions);
-                    transferResult.Check(); // Throw on any error
-
-                    //upload MD5 files
-                    transferResult = session.PutFiles(fastqFileNames[record.Sample_ID].Item2 + @".md5", RemoteSampleFolder + @"/", false, transferOptions);
-                    transferResult.Check(); // Throw on any error
-
-                    //upload variables file
-                    transferResult = session.PutFiles(localAnalysisDir + @"\" + record.Sample_ID + @".variables", RemoteSampleFolder + @"/", false, transferOptions);
-                    transferResult.Check(); // Throw on any error
-
-                    //copy WRGL pipeline scripts to RemoteSamplefolder
-                    transferResult = session.PutFiles(parameters.getPanelScriptsDir + @"\*.sh", RemoteSampleFolder + @"/", false, transferOptions);
-                    transferResult.Check(); // Throw on any error
-
-                    //copy BEDfile to RemoteSamplefolder
-                    transferResult = session.PutFiles(sampleSheet.getAnalyses[@"P"], RemoteSampleFolder + @"/", false, transferOptions);
-                    transferResult.Check(); // Throw on any error
-
-                    //build BASH command
-                    bashCommand.Append(@"cd ");
-                    bashCommand.Append(RemoteSampleFolder);
-                    bashCommand.Append(@" ");
-                    bashCommand.Append(@"&& ");
-                    bashCommand.Append(@"qsub 1_Nextera_ReadAlignment.sh");
-
-                    //execute pipeline
-                    session.ExecuteCommand(bashCommand.ToString());
-                    bashCommand.Clear();
-                }
-            }
         }
 
         private bool GetData()
@@ -320,8 +193,8 @@ namespace WRGLPipeline
                     {
                         if (record.Analysis == @"P")
                         {
-                            session.GetFiles(scratchDir + runID + @"/" + record.Sample_ID + "/*.sh.o*", localAnalysisDir + @"\").Check();
-                            session.GetFiles(scratchDir + runID + @"/" + record.Sample_ID + "/*.sh.e*", localAnalysisDir + @"\").Check();
+                            session.GetFiles(scratchDir + runID + @"/" + record.Sample_ID + "/*.sh", localAnalysisDir + @"\").Check();
+                            session.GetFiles(scratchDir + runID + @"/" + record.Sample_ID + "/*.sh", localAnalysisDir + @"\").Check();
                         }
                     }
 
@@ -332,8 +205,8 @@ namespace WRGLPipeline
                     session.GetFiles(scratchDir + runID + @"/" + runID + "_Coverage.txt", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/PreferredTranscripts.txt", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + "/*.bed", localAnalysisDir + @"\").Check();
-                    session.GetFiles(scratchDir + runID + "/*.sh.o*", localAnalysisDir + @"\").Check();
-                    session.GetFiles(scratchDir + runID + "/*.sh.e*", localAnalysisDir + @"\").Check();
+                    session.GetFiles(scratchDir + runID + "/*.sh", localAnalysisDir + @"\").Check();
+                    session.GetFiles(scratchDir + runID + "/*.sh", localAnalysisDir + @"\").Check();
 
                     //copy to network
                     File.Copy(localAnalysisDir + @"\" + runID + "_Filtered_Annotated.vcf", networkAnalysisDir + @"\" + runID + "_Filtered_Annotated.vcf");
@@ -344,8 +217,8 @@ namespace WRGLPipeline
 
                     //copy files to the network
                     foreach (var f in Directory.GetFiles(localAnalysisDir).Where(path => Regex.Match(path, @".*.bed").Success)) { File.Copy(f, networkAnalysisDir + @"\" + Path.GetFileName(f)); }
-                    foreach (var f in Directory.GetFiles(localAnalysisDir).Where(path => Regex.Match(path, @".*.sh.o..*").Success)){ File.Copy(f, networkAnalysisDir + @"\" + Path.GetFileName(f)); }
-                    foreach (var f in Directory.GetFiles(localAnalysisDir).Where(path => Regex.Match(path, @".*.sh.e..*").Success)) { File.Copy(f, networkAnalysisDir + @"\" + Path.GetFileName(f)); }
+                    foreach (var f in Directory.GetFiles(localAnalysisDir).Where(path => Regex.Match(path, @".*.sh").Success)){ File.Copy(f, networkAnalysisDir + @"\" + Path.GetFileName(f)); }
+                    foreach (var f in Directory.GetFiles(localAnalysisDir).Where(path => Regex.Match(path, @".*.sh").Success)) { File.Copy(f, networkAnalysisDir + @"\" + Path.GetFileName(f)); }
 
                     return true;
                 }
