@@ -111,13 +111,17 @@ namespace WRGLPipeline
             //write variables file
             WriteVariablesFile();
 
-            //upload and execute pipeline
-            UploadAndExecute();
+            // if getdata is false, run the UploadAndExecute function 
+            if (!parameters.getGetData){
 
-            //wait before checking download
-            AuxillaryFunctions.WriteLog(@"Pipeline idle. Going to sleep...", logFilename, 0, false, parameters);
-            Thread.Sleep(1000 * 60 * 360); //ms
-
+                //upload and execute pipeline
+                UploadAndExecute();
+    
+                //wait before checking download
+                AuxillaryFunctions.WriteLog(@"Pipeline idle. Going to sleep...", logFilename, 0, false, parameters);
+                Thread.Sleep(1000 * 60 * 360); //ms
+            }
+            
             //poll IRIDIS4 for run completion file
             for (int k = 0; k < 200; ++k)
             {
