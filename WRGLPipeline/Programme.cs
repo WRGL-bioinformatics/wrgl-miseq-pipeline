@@ -13,12 +13,29 @@ namespace WRGLPipeline
 
         private static void Main(string[] args)
         {
-            if (args.Length != 1) {
+            // we now want to allow two possible arguments - alignment path and -getData flag
+            if (args.Length == 0 || args.Length >2) {
+                // might want to print a more general usage error here?
                 throw new ArgumentNullException(@"ERROR: Enter path to MiSeq alignment folder");
             }
-
-            //get run parameters
+            // set some defaults, these will be used if only one arg present
+            bool getData = false;
             string suppliedDir = args[0];
+            
+            // check for -getData flag
+            if (args.Length == 2){
+                // if the first arg *isn't* -getdata, throw an exception
+                if (!string.Equals(args[0], "-getdata", StringComparison.CurrentCultureIgnoreCase)){
+                    // might want to print a more general usage error here?
+                    throw new ArgumentNullException(@"ERROR: Enter -getdata flag (optional) and path to MiSeq alignment folder");
+                }
+                // set getData true and supplieDir to second arg - this should be the alignment folder path
+                getData = true;
+                suppliedDir = args[1]
+            }
+            
+            //get run parameters
+            
             string localFastqDir = AuxillaryFunctions.GetFastqDir(suppliedDir);
             string localRootRunDir = AuxillaryFunctions.GetRootRunDir(suppliedDir);
             string localMiSeqAnalysisDir = AuxillaryFunctions.GetLocalAnalysisFolderDir(suppliedDir);
@@ -30,7 +47,9 @@ namespace WRGLPipeline
 
             //Parse samplesheet
             ParseSampleSheet sampleSheet = new ParseSampleSheet(sampleSheetPath, localFastqDir, localLogFilename, parameters);
-
+            //Set getdata parameter
+            sampleSheet.setGetData = getData
+            
             //write variables to log
             AuxillaryFunctions.WriteLog(@"Run identifier: " + runID, localLogFilename, 0, true, parameters);
             AuxillaryFunctions.WriteLog(@"Local root run directory: " + localRootRunDir, localLogFilename, 0, false, parameters);
