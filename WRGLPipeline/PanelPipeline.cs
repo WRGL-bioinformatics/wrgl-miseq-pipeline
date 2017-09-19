@@ -115,7 +115,9 @@ namespace WRGLPipeline
             if (!parameters.getGetData){
 
                 //upload and execute pipeline
-                UploadAndExecute();
+                //DEBUG
+                Console.WriteLine("Whoops, shouldn't have reached this!")
+                //UploadAndExecute();
     
                 //wait before checking download
                 AuxillaryFunctions.WriteLog(@"Pipeline idle. Going to sleep...", logFilename, 0, false, parameters);
