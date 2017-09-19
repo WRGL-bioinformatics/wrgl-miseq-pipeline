@@ -115,9 +115,7 @@ namespace WRGLPipeline
             if (!parameters.getGetData){
 
                 //upload and execute pipeline
-                //DEBUG
-                Console.WriteLine("Whoops, shouldn't have reached this!")
-                //UploadAndExecute();
+                UploadAndExecute();
     
                 //wait before checking download
                 AuxillaryFunctions.WriteLog(@"Pipeline idle. Going to sleep...", logFilename, 0, false, parameters);
@@ -333,25 +331,15 @@ namespace WRGLPipeline
                 {
                     AuxillaryFunctions.WriteLog(@"Analysis complete. Retrieving data...", logFilename, 0, false, parameters);
 
-                    //loop over folders and get logs
-                    foreach (SampleRecord record in sampleSheet.getSampleRecords)
-                    {
-                        if (record.Analysis == @"P")
-                        {
-                            session.GetFiles(scratchDir + runID + @"/" + record.Sample_ID + "/*.sh.o*", localAnalysisDir + @"\").Check();
-                            session.GetFiles(scratchDir + runID + @"/" + record.Sample_ID + "/*.sh.e*", localAnalysisDir + @"\").Check();
-                        }
-                    }
-
                     // Download files and throw on any error
                     session.GetFiles(scratchDir + runID + @"/" + runID + "_Filtered_Annotated.vcf", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/" + runID + "_recalibration_plots.pdf", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/BAMsforDepthAnalysis.list", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/" + runID + "_Coverage.txt", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/PreferredTranscripts.txt", localAnalysisDir + @"\").Check();
-                    session.GetFiles(scratchDir + runID + "/*.bed", localAnalysisDir + @"\").Check();
-                    session.GetFiles(scratchDir + runID + "/*.sh.o*", localAnalysisDir + @"\").Check();
-                    session.GetFiles(scratchDir + runID + "/*.sh.e*", localAnalysisDir + @"\").Check();
+                    session.GetFiles(scratchDir + runID + @"/*.bed", localAnalysisDir + @"\").Check();
+                    session.GetFiles(scratchDir + runID + @"/*.sh", localAnalysisDir + @"\").Check();
+                    session.GetFiles(scratchDir + runID + @"/" + sampleSheet.getSampleRecords[1].Sample_ID + @"/*.sh", localAnalysisDir + @"\").Check(); // download a single copy of the scripts from the first sample
 
                     //copy to network
                     File.Copy(localAnalysisDir + @"\" + runID + "_Filtered_Annotated.vcf", networkAnalysisDir + @"\" + runID + "_Filtered_Annotated.vcf");

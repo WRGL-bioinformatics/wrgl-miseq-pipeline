@@ -13,6 +13,7 @@ namespace WRGLPipeline
 
         private static void Main(string[] args)
         {
+            // getData additions - BS 2017-09-19.
             // we now want to allow two possible arguments - alignment path and -getData flag
             if (args.Length == 0 || args.Length >2) {
                 // might want to print a more general usage error here?
@@ -31,9 +32,19 @@ namespace WRGLPipeline
                 }
                 // set getData true and supplieDir to second arg - this should be the alignment folder path
                 getData = true;
-                suppliedDir = args[1]
+                suppliedDir = args[1];
             }
-            
+
+            // write a confirmatory message to show getData status
+            if (getData)
+            {
+                Console.WriteLine("Downloading run data only.");
+            }
+            else
+            {
+                Console.WriteLine("Running full analysis");
+            }
+
             //get run parameters
             
             string localFastqDir = AuxillaryFunctions.GetFastqDir(suppliedDir);
@@ -48,7 +59,7 @@ namespace WRGLPipeline
             //Parse samplesheet
             ParseSampleSheet sampleSheet = new ParseSampleSheet(sampleSheetPath, localFastqDir, localLogFilename, parameters);
             //Set getdata parameter
-            sampleSheet.setGetData = getData
+            parameters.setGetData = getData;
             
             //write variables to log
             AuxillaryFunctions.WriteLog(@"Run identifier: " + runID, localLogFilename, 0, true, parameters);
@@ -63,8 +74,13 @@ namespace WRGLPipeline
             AuxillaryFunctions.WriteLog(@"Investigator name: " + sampleSheet.getInvestigatorName, localLogFilename, 0, false, parameters);
 
             //compute MD5 for fastqs; copy fastqs, metrics, samplesheet and MD5 to network
-            FileManagement.BackupFiles(localFastqDir, suppliedDir, localRootRunDir, networkRootRunDir, localLogFilename, parameters);
-
+            // only run for full analysis, not getdata. BS 2017-09-19.
+            if (!parameters.getGetData)
+            {
+                FileManagement.BackupFiles(localFastqDir, suppliedDir, localRootRunDir, networkRootRunDir, localLogFilename, parameters);
+            }
+            
+            // Check analysis type and run appropriate wrapper
             if (sampleSheet.getAnalyses.Count > 0)
             {
                 Dictionary<string, Tuple<string, string>> fastqFileNames = new Dictionary<string, Tuple<string, string>>(GetFASTQFileNames(sampleSheet, localFastqDir, localLogFilename, parameters));
