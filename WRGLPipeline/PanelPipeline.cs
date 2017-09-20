@@ -119,7 +119,11 @@ namespace WRGLPipeline
     
                 //wait before checking download
                 AuxillaryFunctions.WriteLog(@"Pipeline idle. Going to sleep...", logFilename, 0, false, parameters);
-                Thread.Sleep(1000 * 60 * 360); //ms
+
+                // TimeSpan is more intuitive than ticks/ms
+                // sets (hours, minutes, seconds)
+                TimeSpan waitTime = new TimeSpan(3, 0, 0);
+                Thread.Sleep(waitTime);
             }
             
             //poll IRIDIS4 for run completion file
@@ -130,7 +134,11 @@ namespace WRGLPipeline
                 if (GetData() == false) //run pending
                 {
                     AuxillaryFunctions.WriteLog(@"Pipeline idle. Going to sleep...", logFilename, 0, false, parameters);
-                    Thread.Sleep(1000 * 60 * 30); //ms wait 30 mins before checking again
+
+                    // TimeSpan is more intuitive than ticks/ms
+                    // sets (hours, minutes, seconds)
+                    TimeSpan waitTime = new TimeSpan(0, 30, 0);
+                    Thread.Sleep(waitTime); //ms wait 30 mins before checking again
                 }
                 else
                 {
