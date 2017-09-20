@@ -54,3 +54,6 @@ C:\WRGLPipeline\WRGLPipeline_getdata\WRGLPipeline\obj\Release\WRGLPipeline.pdb
 C:\WRGLPipeline\WRGLPipeline_getdata\WRGLPipeline\obj\Release\WRGLPipeline.csprojResolveAssemblyReference.cache
 C:\WRGLPipeline\WRGLPipeline_getdata\WRGLPipeline\bin\Release\WRGLPipeline.exe
 C:\WRGLPipeline\WRGLPipeline_getdata\WRGLPipeline\bin\Release\WRGLPipeline.pdb
+C:\WRGLPipeline\WRGLPipeline_network_running\WRGLPipeline\bin\Release\WRGLPipeline.exe.config
+C:\WRGLPipeline\WRGLPipeline_network_running\WRGLPipeline\obj\Release\WRGLPipeline.exe
+C:\WRGLPipeline\WRGLPipeline_network_running\WRGLPipeline\obj\Release\WRGLPipeline.pdb
