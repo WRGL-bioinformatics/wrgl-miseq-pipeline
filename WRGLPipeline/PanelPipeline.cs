@@ -355,7 +355,17 @@ namespace WRGLPipeline
                     File.Copy(localAnalysisDir + @"\BAMsforDepthAnalysis.list", networkAnalysisDir + @"\BAMsforDepthAnalysis.list");
                     File.Copy(localAnalysisDir + @"\" + runID + "_Coverage.txt", networkAnalysisDir + @"\" + runID + "_Coverage.txt");
                     File.Copy(localAnalysisDir + @"\PreferredTranscripts.txt", networkAnalysisDir + @"\PreferredTranscripts.txt");
-
+                    // can't use File.Copy to glob all .sh files
+                    // need to get a list of all filenames
+                    string[] scriptList = Directory.GetFiles(localAnalysisDir, "*.sh");
+                    foreach (string script in scriptList)
+                    {
+                        // remove full path - see example on File.Copy MSDN page
+                        string scriptname = script.Substring(localAnalysisDir.Length+1);
+                        // copy, and overwrite if exists
+                        File.Copy(Path.Combine(sourceDir, scriptname), Path.Combine(networkAnalysisDir, scriptname), true);
+                    }
+                    
                     //copy files to the network
                     foreach (var f in Directory.GetFiles(localAnalysisDir).Where(path => Regex.Match(path, @".*.bed").Success)) { File.Copy(f, networkAnalysisDir + @"\" + Path.GetFileName(f)); }
                     foreach (var f in Directory.GetFiles(localAnalysisDir).Where(path => Regex.Match(path, @".*.sh.o..*").Success)){ File.Copy(f, networkAnalysisDir + @"\" + Path.GetFileName(f)); }
