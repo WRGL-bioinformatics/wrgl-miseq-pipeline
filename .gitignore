@@ -3,6 +3,6 @@ bin/Debug
 # add bin/Release if WinSCP can be moved
 obj/
 
-1
+# user specific files
 *.suo
 *.user
