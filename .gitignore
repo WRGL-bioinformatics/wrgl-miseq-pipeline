@@ -1,0 +1,8 @@
+# directories/compiled code
+bin/Debug
+# add bin/Release if WinSCP can be moved
+obj/
+
+1
+*.suo
+*.user
