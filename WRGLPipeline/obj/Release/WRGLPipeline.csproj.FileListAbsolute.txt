@@ -48,3 +48,6 @@ C:\Users\msl\Desktop\SalisburyFiles\WRGLPipeline\WRGLPipeline\WRGLPipeline\obj\R
 C:\Users\msl\Desktop\SalisburyFiles\WRGLPipeline\WRGLPipeline\WRGLPipeline\bin\Release\WRGLPipeline.exe
 C:\Users\msl\Desktop\SalisburyFiles\WRGLPipeline\WRGLPipeline\WRGLPipeline\bin\Release\WRGLPipeline.pdb
 C:\Users\msl\Desktop\SalisburyFiles\WRGLPipeline\WRGLPipeline\WRGLPipeline\obj\Release\WRGLPipeline.csprojResolveAssemblyReference.cache
+C:\WRGLPipeline\WRGLPipeline_waittime\WRGLPipeline\bin\Release\WRGLPipeline.exe.config
+C:\WRGLPipeline\WRGLPipeline_waittime\WRGLPipeline\obj\Release\WRGLPipeline.exe
+C:\WRGLPipeline\WRGLPipeline_waittime\WRGLPipeline\obj\Release\WRGLPipeline.pdb
