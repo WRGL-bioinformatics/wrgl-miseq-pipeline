@@ -12,7 +12,7 @@ namespace WRGLPipeline
 {
     class PanelPipeline
     {
-        const double PanelPipelineVerison = 2.0;
+        const double PanelPipelineVerison = 2.1;
 
         //tunnel connection settings
         private string scratchDir;
@@ -119,7 +119,11 @@ namespace WRGLPipeline
     
                 //wait before checking download
                 AuxillaryFunctions.WriteLog(@"Pipeline idle. Going to sleep...", logFilename, 0, false, parameters);
-                Thread.Sleep(1000 * 60 * 360); //ms
+
+                // TimeSpan is more intuitive than ticks/ms
+                // sets (hours, minutes, seconds)
+                TimeSpan waitTime = new TimeSpan(3, 0, 0);
+                Thread.Sleep(waitTime);
             }
             
             //poll IRIDIS4 for run completion file
@@ -130,7 +134,11 @@ namespace WRGLPipeline
                 if (GetData() == false) //run pending
                 {
                     AuxillaryFunctions.WriteLog(@"Pipeline idle. Going to sleep...", logFilename, 0, false, parameters);
-                    Thread.Sleep(1000 * 60 * 30); //ms wait 30 mins before checking again
+
+                    // TimeSpan is more intuitive than ticks/ms
+                    // sets (hours, minutes, seconds)
+                    TimeSpan waitTime = new TimeSpan(0, 30, 0);
+                    Thread.Sleep(waitTime); //ms wait 30 mins before checking again
                 }
                 else
                 {
@@ -347,11 +355,9 @@ namespace WRGLPipeline
                     File.Copy(localAnalysisDir + @"\BAMsforDepthAnalysis.list", networkAnalysisDir + @"\BAMsforDepthAnalysis.list");
                     File.Copy(localAnalysisDir + @"\" + runID + "_Coverage.txt", networkAnalysisDir + @"\" + runID + "_Coverage.txt");
                     File.Copy(localAnalysisDir + @"\PreferredTranscripts.txt", networkAnalysisDir + @"\PreferredTranscripts.txt");
-
                     //copy files to the network
                     foreach (var f in Directory.GetFiles(localAnalysisDir).Where(path => Regex.Match(path, @".*.bed").Success)) { File.Copy(f, networkAnalysisDir + @"\" + Path.GetFileName(f)); }
-                    foreach (var f in Directory.GetFiles(localAnalysisDir).Where(path => Regex.Match(path, @".*.sh.o..*").Success)){ File.Copy(f, networkAnalysisDir + @"\" + Path.GetFileName(f)); }
-                    foreach (var f in Directory.GetFiles(localAnalysisDir).Where(path => Regex.Match(path, @".*.sh.e..*").Success)) { File.Copy(f, networkAnalysisDir + @"\" + Path.GetFileName(f)); }
+                    foreach (var f in Directory.GetFiles(localAnalysisDir).Where(path => Regex.Match(path, @".*.sh").Success)){ File.Copy(f, networkAnalysisDir + @"\" + Path.GetFileName(f)); }
 
                     return true;
                 }
