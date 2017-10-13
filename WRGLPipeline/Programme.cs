@@ -9,7 +9,7 @@ namespace WRGLPipeline
 {
     class Programme
     {
-        public const double WRGLversion = 1.7;
+        public const double WRGLversion = 2.0;
 
         private static void Main(string[] args)
         {
