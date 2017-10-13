@@ -11,7 +11,7 @@ namespace WRGLPipeline
 {
     class GenotypingPipelineWrapper
     {
-        const double GenotypingPipelineVerison = 2.1;
+        const double GenotypingPipelineVerison = 2.2;
 
         private ParseSampleSheet sampleSheet;
         private string localFastqDir, logFilename, runID, networkRootRunDir, analysisDir, networkAnalysisDir, reportFilename;
