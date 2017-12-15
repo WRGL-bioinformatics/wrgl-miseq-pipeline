@@ -15,6 +15,12 @@ namespace WRGLPipeline
             string[] FASTQfiles = Directory.GetFiles(localFastqDir, @"*.fastq.gz");
 
             //compute MD5 and copy FASTQ files and checksums to network location
+            //fastqs (and md5s) should be in <runID>\Data\Intensities\BaseCalls
+            
+            //create BaseCalls folder
+            Directory.CreateDirectory(networkRootRunDir + @"\Data\Intensities\BaseCalls");
+            
+            //loop over files and copy
             foreach (string FASTQfilePath in FASTQfiles){
 
                 string FASTQFilename = Path.GetFileName(FASTQfilePath);
@@ -31,19 +37,23 @@ namespace WRGLPipeline
 
                     AuxillaryFunctions.WriteLog(@"Copying files to network: " + FASTQFilename + ' ' + FASTQFilename + @".md5", logFilename, 0, false, parameters);
 
-                    File.Copy(FASTQfilePath, networkRootRunDir + @"\" + FASTQFilename);
-                    File.Copy(FASTQfilePath + @".md5", networkRootRunDir + @"\" + FASTQFilename + @".md5");
+                    File.Copy(FASTQfilePath, networkRootRunDir + @"\Data\Intensities\BaseCalls\" + FASTQFilename);
+                    File.Copy(FASTQfilePath + @".md5", networkRootRunDir + @"\Data\Intensities\BaseCalls\" + FASTQFilename + @".md5");
                 }
             }
 
             //copy run files to network
             AuxillaryFunctions.WriteLog(@"Copying SampleSheet and performance metrics to network", logFilename, 0, false, parameters);
 
-            File.Copy(suppliedDir + @"\SampleSheetUsed.csv", networkRootRunDir + @"\SampleSheetUsed.csv");
-            File.Copy(suppliedDir + @"\DemultiplexSummaryF1L1.txt", networkRootRunDir + @"\DemultiplexSummaryF1L1.txt");
+            Directory.CreateDirectory(networkRootRunDir + @"\Data\Intensities\BaseCalls\Alignment");
+            File.Copy(suppliedDir + @"\SampleSheetUsed.csv", networkRootRunDir + @"\Data\Intensities\BaseCalls\Alignment\SampleSheetUsed.csv");
+            File.Copy(suppliedDir + @"\DemultiplexSummaryF1L1.txt", networkRootRunDir + @"\Data\Intensities\BaseCalls\Alignment\DemultiplexSummaryF1L1.txt");
+
+            // these go in root run folder, so this is ok
             File.Copy(localRootRunDir + @"runParameters.xml", networkRootRunDir + @"\runParameters.xml");
             File.Copy(localRootRunDir + @"RunInfo.xml", networkRootRunDir + @"\RunInfo.xml");
 
+            //InterOp is correctly placed in the root run folder
             Directory.CreateDirectory(networkRootRunDir + @"\InterOp");
             FileManagement.DirectoryCopyFunction(localRootRunDir + @"InterOp", networkRootRunDir + @"\InterOp", false, logFilename, parameters);
         }

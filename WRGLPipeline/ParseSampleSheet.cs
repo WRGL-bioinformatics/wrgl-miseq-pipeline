@@ -246,6 +246,5 @@ namespace WRGLPipeline
         public string getExperimentName { get { return experimentName; } }
         public List<SampleRecord> getSampleRecords { get { return sampleRecords; } }
         public Dictionary<string, string> getAnalyses { get { return analyses; } }
-
     }
 }

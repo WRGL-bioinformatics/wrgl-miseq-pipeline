@@ -9,16 +9,44 @@ namespace WRGLPipeline
 {
     class Programme
     {
-        public const double WRGLversion = 1.7;
+        public const double WRGLversion = 2.0;
 
         private static void Main(string[] args)
         {
-            if (args.Length != 1) {
+            // getData additions - BS 2017-09-19.
+            // we now want to allow two possible arguments - alignment path and -getData flag
+            if (args.Length == 0 || args.Length >2) {
+                // might want to print a more general usage error here?
                 throw new ArgumentNullException(@"ERROR: Enter path to MiSeq alignment folder");
+            }
+            // set some defaults, these will be used if only one arg present
+            bool getData = false;
+            string suppliedDir = args[0];
+            
+            // check for -getData flag
+            if (args.Length == 2){
+                // if the first arg *isn't* -getdata, throw an exception
+                if (!string.Equals(args[0], "-getdata", StringComparison.CurrentCultureIgnoreCase)){
+                    // might want to print a more general usage error here?
+                    throw new ArgumentNullException(@"ERROR: Enter -getdata flag (optional) and path to MiSeq alignment folder");
+                }
+                // set getData true and supplieDir to second arg - this should be the alignment folder path
+                getData = true;
+                suppliedDir = args[1];
+            }
+
+            // write a confirmatory message to show getData status
+            if (getData)
+            {
+                Console.WriteLine("Downloading run data only.");
+            }
+            else
+            {
+                Console.WriteLine("Running full analysis");
             }
 
             //get run parameters
-            string suppliedDir = args[0];
+            
             string localFastqDir = AuxillaryFunctions.GetFastqDir(suppliedDir);
             string localRootRunDir = AuxillaryFunctions.GetRootRunDir(suppliedDir);
             string localMiSeqAnalysisDir = AuxillaryFunctions.GetLocalAnalysisFolderDir(suppliedDir);
@@ -30,7 +58,9 @@ namespace WRGLPipeline
 
             //Parse samplesheet
             ParseSampleSheet sampleSheet = new ParseSampleSheet(sampleSheetPath, localFastqDir, localLogFilename, parameters);
-
+            //Set getdata parameter
+            parameters.setGetData = getData;
+            
             //write variables to log
             AuxillaryFunctions.WriteLog(@"Run identifier: " + runID, localLogFilename, 0, true, parameters);
             AuxillaryFunctions.WriteLog(@"Local root run directory: " + localRootRunDir, localLogFilename, 0, false, parameters);
@@ -44,8 +74,13 @@ namespace WRGLPipeline
             AuxillaryFunctions.WriteLog(@"Investigator name: " + sampleSheet.getInvestigatorName, localLogFilename, 0, false, parameters);
 
             //compute MD5 for fastqs; copy fastqs, metrics, samplesheet and MD5 to network
-            FileManagement.BackupFiles(localFastqDir, suppliedDir, localRootRunDir, networkRootRunDir, localLogFilename, parameters);
-
+            // only run for full analysis, not getdata. BS 2017-09-19.
+            if (!parameters.getGetData)
+            {
+                FileManagement.BackupFiles(localFastqDir, suppliedDir, localRootRunDir, networkRootRunDir, localLogFilename, parameters);
+            }
+            
+            // Check analysis type and run appropriate wrapper
             if (sampleSheet.getAnalyses.Count > 0)
             {
                 Dictionary<string, Tuple<string, string>> fastqFileNames = new Dictionary<string, Tuple<string, string>>(GetFASTQFileNames(sampleSheet, localFastqDir, localLogFilename, parameters));
