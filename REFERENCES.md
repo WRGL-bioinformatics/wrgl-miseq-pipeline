@@ -3,6 +3,8 @@
 Last modified dates on GATK bundle files are all 2013
 Need to check if GATK has updated these since!
 
+NOTE: This is not the official, final list - see iPassport for this.
+
 ## Panels
 In /scratch/WRGL/bundle2.8/b37
 * human_g1k_v37.fasta
