@@ -46,6 +46,7 @@ namespace WRGLPipeline
             AuxillaryFunctions.WriteLog(@"Copying SampleSheet and performance metrics to network", logFilename, 0, false, parameters);
 
             Directory.CreateDirectory(networkRootRunDir + @"\Data\Intensities\BaseCalls\Alignment");
+            File.Copy(suppliedDir + @"\SampleSheetUsed.csv", networkRootRunDir + @"\SampleSheetUsed.csv");
             File.Copy(suppliedDir + @"\SampleSheetUsed.csv", networkRootRunDir + @"\Data\Intensities\BaseCalls\Alignment\SampleSheetUsed.csv");
             File.Copy(suppliedDir + @"\DemultiplexSummaryF1L1.txt", networkRootRunDir + @"\Data\Intensities\BaseCalls\Alignment\DemultiplexSummaryF1L1.txt");
 
