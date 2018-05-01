@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -594,7 +594,7 @@ namespace WRGLPipeline
 
                     for (int n = 2; n < fields.Length; ++n) //skip chrom & pos
                     {
-                        if (Convert.ToUInt32(fields[n]) < 30) //base has failed
+                        if (Convert.ToUInt32(fields[n]) < parameters.getPanelsDepth) //base has failed
                         {
                             //mark amplicon as failed
                             failedAmpliconID = AuxillaryFunctions.LookupAmpliconID(new Tuple<string, UInt32>(fields[0], pos), coreBEDRecords.getBEDRecords);
