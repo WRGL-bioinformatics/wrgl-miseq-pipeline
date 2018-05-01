@@ -7,7 +7,7 @@ or genotyping pipelines.
 v2.1
 
 ## Change summary
- * TODO: Remove hard-coding of depth cutoffs. Instead do via .ini file
+ * TO TEST: Remove hard-coding of depth cutoffs. Instead do via .ini file
  * TODO: Update reporting module to handle uncertain ./. & ./1 genotypes
  * TODO: Exome specific processing - download and use BED file from Iridis
 
