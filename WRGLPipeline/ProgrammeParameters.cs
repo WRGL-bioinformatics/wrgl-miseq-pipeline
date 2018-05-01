@@ -273,6 +273,10 @@ namespace WRGLPipeline
         public string getGatkPath { get { return gatkPath; } }
         public string getSnpEffPath { get { return snpEffPath; } }
         public string getSamtoolsPath { get { return samtoolsPath; } }
+        public string getGenotypingDepth { get { return GenotypingDepth; } }
+        public string getGenotypingQual { get { return GenotypingQual; } }
+        public string getPanelsDepth { get { return PanelsDepth; } }
+        public string getExomeDepth { get { return ExomeDepth; } }
         public string getPreferredTranscriptsFile { get { return preferredTranscriptsFile; } }
         public string getInterpretationsFile { get { return interpretationsFile; } }
         public bool getDeleteOldestLocalRun { get { return deleteOldestLocalRun; } }
