@@ -4,6 +4,14 @@ C# pipeline that runs on MiSeq completion and manages data through either panels
 or genotyping pipelines.
 
 ## Version
+v2.1
+
+## Change summary
+ * TODO: Remove hard-coding of depth cutoffs. Instead do via .ini file
+ * TODO: Update reporting module to handle uncertain ./. & ./1 genotypes
+ * TODO: Exome specific processing - download and use BED file from Iridis
+
+## Old Version
 v2.0
 
 ## Change summary
