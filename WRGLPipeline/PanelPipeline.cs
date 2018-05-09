@@ -446,11 +446,25 @@ namespace WRGLPipeline
                             //print exon
                             panelReport.Write("{0}\t", ann.Exon_Rank);
 
-                            if (VCFrecord.formatSubFields["GT"] == @"0/1")
+                            // 1/0 is not technically VCF spec, but is output by some tools so we should account for it
+                            if (VCFrecord.formatSubFields["GT"] == @"0/1" || VCFrecord.formatSubFields["GT"] == @"1/0")
                             {
                                 panelReport.Write("HET\t");
-                            } else if (VCFrecord.formatSubFields["GT"] == @"1/1"){
+                            } 
+                            else if (VCFrecord.formatSubFields["GT"] == @"1/1"){
                                 panelReport.Write("HOM_ALT\t");
+                            }
+                            // uncertain genotypes (i.e. with ".") should be flagged.
+                            // in all likelihood they will be flagged as GAPs, but best to be sure
+                            else if (VCFrecord.formatSubFields["G"] == @"./1" || VCFrecord.formatSubFields["G"] == @"1/.")
+                            {
+                                PanelReport.Write("UNCERTAIN_HET\t")
+                            }
+                            // homozygous uncertain genotypes are almost certainly gaps, and are filtered by the current pipeline
+                            // but for futureproofing/compatibility with other pipelines they are included
+                            else if (VCFrecord.formatSubFields["GT"] == @"./.")
+                            {
+                                PanelReport.Write("UNCERTAIN_HOM\t")
                             }
                             else if (VCFrecord.formatSubFields["GT"] == @"")
                             {
@@ -490,13 +504,26 @@ namespace WRGLPipeline
                         panelReport.Write(record.Sample_Name + "\t");
                         panelReport.Write("\t\t\t\t");
 
-                        if (VCFrecord.formatSubFields["GT"] == @"0/1")
+                        // 1/0 is not technically VCF spec, but is output by some tools so we should account for it
+                        if (VCFrecord.formatSubFields["GT"] == @"0/1" || VCFrecord.formatSubFields["GT"] == @"1/0")
                         {
                             panelReport.Write("HET\t");
                         }
                         else if (VCFrecord.formatSubFields["GT"] == @"1/1")
                         {
                             panelReport.Write("HOM_ALT\t");
+                        }
+                        // uncertain genotypes (i.e. with ".") should be flagged.
+                        // in all likelihood they will be flagged as GAPs, but best to be sure
+                        else if (VCFrecord.formatSubFields["G"] == @"./1" || VCFrecord.formatSubFields["G"] == @"1/.")
+                        {
+                            PanelReport.Write("UNCERTAIN_HET\t")
+                        }
+                        // homozygous uncertain genotypes are almost certainly gaps, and are filtered by the current pipeline
+                        // but for futureproofing/compatibility with other pipelines they are included
+                        else if (VCFrecord.formatSubFields["GT"] == @"./.")
+                        {
+                            PanelReport.Write("UNCERTAIN_HOM\t")
                         }
                         else
                         {
