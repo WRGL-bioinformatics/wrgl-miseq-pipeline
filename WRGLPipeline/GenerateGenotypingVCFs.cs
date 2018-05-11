@@ -304,7 +304,7 @@ namespace WRGLPipeline
                 foreach (VCFRecordWithGenotype record in parseVCFFile.getVCFRecords["SampleID"])
                 {
                     //store variants that pass qc
-                    if (record.FILTER == "PASS" && record.QUAL >= parameters.getGenotypingQual && System.Convert.ToUInt32(record.infoSubFields["DP"]) >= parameters.getGenotypingDepth)
+                    if (record.FILTER == "PASS" && record.QUAL >= Convert.ToUInt32(parameters.getGenotypingQual) && System.Convert.ToUInt32(record.infoSubFields["DP"]) >= Convert.ToUInt16(parameters.getGenotypingDepth))
                     {
                         tempVariant.CHROM = record.CHROM;
                         tempVariant.REF = record.REF;

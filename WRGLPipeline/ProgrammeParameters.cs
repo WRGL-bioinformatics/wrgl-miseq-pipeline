@@ -43,10 +43,10 @@ namespace WRGLPipeline
         private string preferredTranscriptsFile; //ENST list of transcripts
         
         //[AnalysisParameters]
-        private string GenotypingDepth
-        private string GenotypingQual
-        private string PanelsDepth
-        private string ExomeDepth
+        private string GenotypingDepth;
+        private string GenotypingQual;
+        private string PanelsDepth;
+        private string ExomeDepth;
 
         //[FileManagement]
         private bool deleteOldestLocalRun;
@@ -117,10 +117,10 @@ namespace WRGLPipeline
             snpEffPath = parameters[@"snpEff"];
             samtoolsPath = parameters[@"samtools"];
 
-            GenotypingDepth = parameters[@"GenotypingDepth"]
-            GenotypingQual = parameters[@"GenotypingQual"]
-            PanelsDepth = parameters[@"PanelsDepth"]
-            ExomeDepth = parameters[@"ExomeDepth"]
+            GenotypingDepth = parameters[@"GenotypingDepth"];
+            GenotypingQual = parameters[@"GenotypingQual"];
+            PanelsDepth = parameters[@"PanelsDepth"];
+            ExomeDepth = parameters[@"ExomeDepth"];
 
             preferredTranscriptsFile = parameters[@"PreferredTranscripts"];
             interpretationsFile = parameters[@"Interpretations"];

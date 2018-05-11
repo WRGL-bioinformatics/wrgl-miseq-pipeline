@@ -458,13 +458,13 @@ namespace WRGLPipeline
                             // in all likelihood they will be flagged as GAPs, but best to be sure
                             else if (VCFrecord.formatSubFields["G"] == @"./1" || VCFrecord.formatSubFields["G"] == @"1/.")
                             {
-                                PanelReport.Write("UNCERTAIN_HET\t")
+                                panelReport.Write("UNCERTAIN_HET\t");
                             }
                             // homozygous uncertain genotypes are almost certainly gaps, and are filtered by the current pipeline
                             // but for futureproofing/compatibility with other pipelines they are included
                             else if (VCFrecord.formatSubFields["GT"] == @"./.")
                             {
-                                PanelReport.Write("UNCERTAIN_HOM\t")
+                                panelReport.Write("UNCERTAIN_HOM\t");
                             }
                             else if (VCFrecord.formatSubFields["GT"] == @"")
                             {
@@ -517,13 +517,13 @@ namespace WRGLPipeline
                         // in all likelihood they will be flagged as GAPs, but best to be sure
                         else if (VCFrecord.formatSubFields["G"] == @"./1" || VCFrecord.formatSubFields["G"] == @"1/.")
                         {
-                            PanelReport.Write("UNCERTAIN_HET\t")
+                            panelReport.Write("UNCERTAIN_HET\t");
                         }
                         // homozygous uncertain genotypes are almost certainly gaps, and are filtered by the current pipeline
                         // but for futureproofing/compatibility with other pipelines they are included
                         else if (VCFrecord.formatSubFields["GT"] == @"./.")
                         {
-                            PanelReport.Write("UNCERTAIN_HOM\t")
+                            panelReport.Write("UNCERTAIN_HOM\t");
                         }
                         else
                         {
@@ -621,7 +621,7 @@ namespace WRGLPipeline
 
                     for (int n = 2; n < fields.Length; ++n) //skip chrom & pos
                     {
-                        if (Convert.ToUInt32(fields[n]) < parameters.getPanelsDepth) //base has failed
+                        if (Convert.ToUInt32(fields[n]) < Convert.ToUInt32(parameters.getPanelsDepth)) //base has failed
                         {
                             //mark amplicon as failed
                             failedAmpliconID = AuxillaryFunctions.LookupAmpliconID(new Tuple<string, UInt32>(fields[0], pos), coreBEDRecords.getBEDRecords);
