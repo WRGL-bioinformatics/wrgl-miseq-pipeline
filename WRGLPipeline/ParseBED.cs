@@ -10,8 +10,8 @@ namespace WRGLPipeline
     public struct BEDRecord
     {
         public string chromosome;
-        public UInt32 start;
-        public UInt32 end;
+        public int start;
+        public int end;
         public string name;
     }
 
@@ -57,8 +57,8 @@ namespace WRGLPipeline
                         }
 
                         tempBEDRecord.chromosome = fields[0];
-                        tempBEDRecord.start = Convert.ToUInt32(fields[1]);
-                        tempBEDRecord.end = Convert.ToUInt32(fields[2]);
+                        tempBEDRecord.start = int.Parse(fields[1]);
+                        tempBEDRecord.end = int.Parse(fields[2]);
                         tempBEDRecord.name = fields[3];
 
                         BEDRecords.Add(tempBEDRecord);

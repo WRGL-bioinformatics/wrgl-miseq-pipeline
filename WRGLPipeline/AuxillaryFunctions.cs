@@ -38,7 +38,7 @@ namespace WRGLPipeline
         }
 
         //return concatinated string for multiple amplicons
-        public static string LookupAmpliconID(Tuple<string, uint> gVariant, List<BEDRecord> BEDRecords) //give genomic coordinate return amplicon name
+        public static string LookupAmpliconID(Tuple<string, int> gVariant, List<BEDRecord> BEDRecords) //give genomic coordinate return amplicon name
         {
             //iterate over records
             foreach (BEDRecord record in BEDRecords)

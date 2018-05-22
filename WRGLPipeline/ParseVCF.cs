@@ -16,13 +16,13 @@ namespace WRGLPipeline
     public struct GenomicVariant
     {
         public string CHROM, REF, ALT;
-        public UInt32 POS;
+        public int POS;
     }
 
     public struct VCFRecordWithGenotype
     {
         public string CHROM, ID, REF, ALT, FILTER;
-        public UInt32 POS;
+        public int POS;
         public double QUAL;
         public Dictionary<string, string> infoSubFields;
         public Dictionary<string, string> formatSubFields;
@@ -83,7 +83,7 @@ namespace WRGLPipeline
                 string[] bodyFields = line.Split('\t');
 
                 VCFRecordTemp.CHROM = bodyFields[0]; //required, string
-                VCFRecordTemp.POS = Convert.ToUInt32(bodyFields[1]); //required, integer
+                VCFRecordTemp.POS = int.Parse(bodyFields[1]); //required, integer
                 VCFRecordTemp.ID = bodyFields[2]; //not required, string or '.'
                 VCFRecordTemp.REF = bodyFields[3]; //required, string
                 VCFRecordTemp.ALT = bodyFields[4]; //not required, string or '.'

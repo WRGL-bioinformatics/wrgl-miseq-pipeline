@@ -487,7 +487,7 @@ namespace WRGLPipeline
                             }
 
                             //print HTSF amplicon (if present)
-                            panelReport.Write(AuxillaryFunctions.LookupAmpliconID(new Tuple<string, UInt32>(VCFrecord.CHROM, VCFrecord.POS), coreBEDRecords.getBEDRecords) + "\t");
+                            panelReport.Write(AuxillaryFunctions.LookupAmpliconID(new Tuple<string, int>(VCFrecord.CHROM, VCFrecord.POS), coreBEDRecords.getBEDRecords) + "\t");
 
                             panelReport.Write(VCFrecord.CHROM + "\t");
                             panelReport.Write(VCFrecord.POS + "\t");
@@ -542,7 +542,7 @@ namespace WRGLPipeline
                         }
 
                         //print HTSF amplicon (if present)
-                        panelReport.Write(AuxillaryFunctions.LookupAmpliconID(new Tuple<string, UInt32>(VCFrecord.CHROM, VCFrecord.POS), coreBEDRecords.getBEDRecords) + "\t");
+                        panelReport.Write(AuxillaryFunctions.LookupAmpliconID(new Tuple<string, int>(VCFrecord.CHROM, VCFrecord.POS), coreBEDRecords.getBEDRecords) + "\t");
 
                         panelReport.Write(VCFrecord.CHROM + "\t");
                         panelReport.Write(VCFrecord.POS + "\t");
@@ -577,8 +577,8 @@ namespace WRGLPipeline
             AuxillaryFunctions.WriteLog(@"Analysing coverage data...", logFilename, 0, false, parameters);
 
             string line, failedAmpliconID;
-            UInt32 pos;
-            Dictionary<Tuple<string, UInt32>, bool> isBaseCovered = new Dictionary<Tuple<string, UInt32>, bool>(); //bool = observed
+            int pos;
+            Dictionary<Tuple<string, int>, bool> isBaseCovered = new Dictionary<Tuple<string, int>, bool>(); //bool = observed
             List<string> sampleIDs = new List<string>();
 
             //read sampleID order
@@ -598,9 +598,9 @@ namespace WRGLPipeline
                 //iterate over region
                 for (pos = record.start + 2; pos < record.end + 1; ++pos)
                 {
-                    if (!isBaseCovered.ContainsKey(new Tuple<string, UInt32>(record.chromosome, pos)))
+                    if (!isBaseCovered.ContainsKey(new Tuple<string, int>(record.chromosome, pos)))
                     {
-                        isBaseCovered.Add(new Tuple<string, UInt32>(record.chromosome, pos), false);
+                        isBaseCovered.Add(new Tuple<string, int>(record.chromosome, pos), false);
                     }
                 }
 
@@ -614,17 +614,17 @@ namespace WRGLPipeline
                 {
                     string[] fields = line.Split('\t');
 
-                    pos = Convert.ToUInt32(fields[1]);
+                    pos = int.Parse(fields[1]);
 
                     //mark base as observed in the dataset
-                    isBaseCovered[new Tuple<string, UInt32>(fields[0], pos)] = true;
+                    isBaseCovered[new Tuple<string, int>(fields[0], pos)] = true;
 
                     for (int n = 2; n < fields.Length; ++n) //skip chrom & pos
                     {
-                        if (Convert.ToUInt32(fields[n]) < Convert.ToUInt32(parameters.getPanelsDepth)) //base has failed
+                        if (int.Parse(fields[n]) < parameters.getPanelsDepth) //base has failed
                         {
                             //mark amplicon as failed
-                            failedAmpliconID = AuxillaryFunctions.LookupAmpliconID(new Tuple<string, UInt32>(fields[0], pos), coreBEDRecords.getBEDRecords);
+                            failedAmpliconID = AuxillaryFunctions.LookupAmpliconID(new Tuple<string, int>(fields[0], pos), coreBEDRecords.getBEDRecords);
 
                             if (failedAmpliconID != "") //skip off target
                             {
@@ -636,7 +636,7 @@ namespace WRGLPipeline
             }
 
             //report missing bases as failed
-            foreach (KeyValuePair<Tuple<string, UInt32>, bool> nucl in isBaseCovered)
+            foreach (KeyValuePair<Tuple<string, int>, bool> nucl in isBaseCovered)
             {
                 if (nucl.Value == false) //base not present in dataset
                 {
