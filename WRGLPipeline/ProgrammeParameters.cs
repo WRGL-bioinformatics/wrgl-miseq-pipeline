@@ -41,6 +41,12 @@ namespace WRGLPipeline
 
         //[CommonParameters]
         private string preferredTranscriptsFile; //ENST list of transcripts
+        
+        //[AnalysisParameters]
+        private string GenotypingDepth;
+        private string GenotypingQual;
+        private string PanelsDepth;
+        private string ExomeDepth;
 
         //[FileManagement]
         private bool deleteOldestLocalRun;
@@ -110,6 +116,11 @@ namespace WRGLPipeline
             gatkPath = parameters[@"gatk"];
             snpEffPath = parameters[@"snpEff"];
             samtoolsPath = parameters[@"samtools"];
+
+            GenotypingDepth = parameters[@"GenotypingDepth"];
+            GenotypingQual = parameters[@"GenotypingQual"];
+            PanelsDepth = parameters[@"PanelsDepth"];
+            ExomeDepth = parameters[@"ExomeDepth"];
 
             preferredTranscriptsFile = parameters[@"PreferredTranscripts"];
             interpretationsFile = parameters[@"Interpretations"];
@@ -262,6 +273,10 @@ namespace WRGLPipeline
         public string getGatkPath { get { return gatkPath; } }
         public string getSnpEffPath { get { return snpEffPath; } }
         public string getSamtoolsPath { get { return samtoolsPath; } }
+        public string getGenotypingDepth { get { return GenotypingDepth; } }
+        public string getGenotypingQual { get { return GenotypingQual; } }
+        public string getPanelsDepth { get { return PanelsDepth; } }
+        public string getExomeDepth { get { return ExomeDepth; } }
         public string getPreferredTranscriptsFile { get { return preferredTranscriptsFile; } }
         public string getInterpretationsFile { get { return interpretationsFile; } }
         public bool getDeleteOldestLocalRun { get { return deleteOldestLocalRun; } }
