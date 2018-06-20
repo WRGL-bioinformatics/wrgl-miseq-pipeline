@@ -12,7 +12,7 @@ namespace WRGLPipeline
 {
     class PanelPipeline
     {
-        const double PanelPipelineVerison = 2.1;
+        const double PanelPipelineVerison = 2.2;
 
         //tunnel connection settings
         private string scratchDir;
