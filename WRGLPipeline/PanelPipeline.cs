@@ -265,6 +265,13 @@ namespace WRGLPipeline
                     transferResult = session.PutFiles(parameters.getPanelScriptsDir + @"\*.sh", RemoteSampleFolder + @"/", false, transferOptions);
                     transferResult.Check(); // Throw on any error
 
+                    //copy WRGL pipeline config file if it exists (older pipelines don't have this)
+                    if System.IO.File.Exists(parameters.getPanelScriptsDir + @"\*.config")
+                    {
+                        transferResult = session.PutFiles(parameters.getPanelScriptsDir + @"\*.config", RemoteSampleFolder + @"/", false, transferOptions);
+                        transferResult.Check(); // Throw on any error
+                    }
+
                     //copy BEDfile to RemoteSamplefolder
                     transferResult = session.PutFiles(sampleSheet.getAnalyses[@"P"], RemoteSampleFolder + @"/", false, transferOptions);
                     transferResult.Check(); // Throw on any error
@@ -347,6 +354,11 @@ namespace WRGLPipeline
                     session.GetFiles(scratchDir + runID + @"/PreferredTranscripts.txt", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/*.bed", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/*.sh", localAnalysisDir + @"\").Check();
+                    // for compatibility with older scripts, check if config file exists before downloading
+                    if (session.FileExists(scratchDir + runID + @"/*.config"))
+                    {
+                        session.GetFiles(scratchDir + runID + @"/*.config", localAnalysisDir + @"\").Check();
+                    }
                     session.GetFiles(scratchDir + runID + @"/" + sampleSheet.getSampleRecords[1].Sample_ID + @"/*.sh", localAnalysisDir + @"\").Check(); // download a single copy of the scripts from the first sample
 
                     //copy to network
@@ -358,6 +370,7 @@ namespace WRGLPipeline
                     //copy files to the network
                     foreach (var f in Directory.GetFiles(localAnalysisDir).Where(path => Regex.Match(path, @".*.bed").Success)) { File.Copy(f, networkAnalysisDir + @"\" + Path.GetFileName(f)); }
                     foreach (var f in Directory.GetFiles(localAnalysisDir).Where(path => Regex.Match(path, @".*.sh").Success)){ File.Copy(f, networkAnalysisDir + @"\" + Path.GetFileName(f)); }
+                    foreach (var f in Directory.GetFiles(localAnalysisDir).Where(path => Regex.Match(path, @".*.config").Success)){ File.Copy(f, networkAnalysisDir + @"\" + Path.GetFileName(f)); }
 
                     return true;
                 }
