@@ -357,7 +357,12 @@ namespace WRGLPipeline
                     // for compatibility with older scripts, check if config file exists before downloading
                     if (session.FileExists(scratchDir + runID + @"/*.config"))
                     {
+                        AuxillaryFunctions.WriteLog(@"Config file found, downloading", logFilename, 0, false, parameters);
                         session.GetFiles(scratchDir + runID + @"/*.config", localAnalysisDir + @"\").Check();
+                    }
+                    else
+                    {
+                        AuxillaryFunctions.WriteLog(@"Config file not found", logFilename, 0, false, parameters);
                     }
                     session.GetFiles(scratchDir + runID + @"/" + sampleSheet.getSampleRecords[1].Sample_ID + @"/*.sh", localAnalysisDir + @"\").Check(); // download a single copy of the scripts from the first sample
 
