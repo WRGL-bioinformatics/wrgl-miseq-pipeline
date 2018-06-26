@@ -266,6 +266,7 @@ namespace WRGLPipeline
                     transferResult.Check(); // Throw on any error
 
                     //copy WRGL pipeline config file if it exists (older pipelines don't have this)
+                    // this doesn't support wildcards, so have to name each possible config file manually.
                     if (System.IO.File.Exists(parameters.getPanelScriptsDir + @"\WRGLpipeline.config") || System.IO.File.Exists(parameters.getPanelScriptsDir + @"\CEP_PIPELINE.config") || System.IO.File.Exists(parameters.getPanelScriptsDir + @"\ALL_PIPELINES.config"))
                     {
                         transferResult = session.PutFiles(parameters.getPanelScriptsDir + @"\*.config", RemoteSampleFolder + @"/", false, transferOptions);
@@ -354,6 +355,7 @@ namespace WRGLPipeline
                     session.GetFiles(scratchDir + runID + @"/*.bed", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/*.sh", localAnalysisDir + @"\").Check();
                     // for compatibility with older scripts, check if config file exists before downloading
+                    // this doesn't support wildcards, so have to name each possible config file manually.
                     if (session.FileExists(scratchDir + runID + @"/WRGLpipeline.config") || session.FileExists(scratchDir + runID + @"/CEP_PIPELINE.config") || session.FileExists(scratchDir + runID + @"/ALL_PIPELINES.config"))
                     {
                         session.GetFiles(scratchDir + runID + @"/*.config", localAnalysisDir + @"\").Check();
