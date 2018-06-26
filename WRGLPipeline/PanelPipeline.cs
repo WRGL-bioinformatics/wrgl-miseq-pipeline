@@ -12,7 +12,7 @@ namespace WRGLPipeline
 {
     class PanelPipeline
     {
-        const double PanelPipelineVerison = 2.2;
+        const string PanelPipelineVerison = @"DEV";
 
         //tunnel connection settings
         private string scratchDir;
@@ -266,7 +266,7 @@ namespace WRGLPipeline
                     transferResult.Check(); // Throw on any error
 
                     //copy WRGL pipeline config file if it exists (older pipelines don't have this)
-                    if System.IO.File.Exists(parameters.getPanelScriptsDir + @"\*.config")
+                    if (System.IO.File.Exists(parameters.getPanelScriptsDir + @"\WRGLpipeline.config") || System.IO.File.Exists(parameters.getPanelScriptsDir + @"\CEP_PIPELINE.config") || System.IO.File.Exists(parameters.getPanelScriptsDir + @"\ALL_PIPELINES.config"))
                     {
                         transferResult = session.PutFiles(parameters.getPanelScriptsDir + @"\*.config", RemoteSampleFolder + @"/", false, transferOptions);
                         transferResult.Check(); // Throw on any error
@@ -348,7 +348,6 @@ namespace WRGLPipeline
 
                     // Download files and throw on any error
                     session.GetFiles(scratchDir + runID + @"/" + runID + "_Filtered_Annotated.vcf", localAnalysisDir + @"\").Check();
-                    session.GetFiles(scratchDir + runID + @"/" + runID + "_recalibration_plots.pdf", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/BAMsforDepthAnalysis.list", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/" + runID + "_Coverage.txt", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/PreferredTranscripts.txt", localAnalysisDir + @"\").Check();
@@ -363,7 +362,6 @@ namespace WRGLPipeline
 
                     //copy to network
                     File.Copy(localAnalysisDir + @"\" + runID + "_Filtered_Annotated.vcf", networkAnalysisDir + @"\" + runID + "_Filtered_Annotated.vcf");
-                    File.Copy(localAnalysisDir + @"\" + runID + "_recalibration_plots.pdf", networkAnalysisDir + @"\" + runID + "_recalibration_plots.pdf");
                     File.Copy(localAnalysisDir + @"\BAMsforDepthAnalysis.list", networkAnalysisDir + @"\BAMsforDepthAnalysis.list");
                     File.Copy(localAnalysisDir + @"\" + runID + "_Coverage.txt", networkAnalysisDir + @"\" + runID + "_Coverage.txt");
                     File.Copy(localAnalysisDir + @"\PreferredTranscripts.txt", networkAnalysisDir + @"\PreferredTranscripts.txt");
