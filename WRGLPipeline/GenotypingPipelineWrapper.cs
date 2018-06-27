@@ -17,7 +17,7 @@ namespace WRGLPipeline
         private string localFastqDir, logFilename, runID, networkRootRunDir, analysisDir, networkAnalysisDir, reportFilename;
         private ProgrammeParameters parameters;
         private List<BEDRecord> BEDRecords = new List<BEDRecord>();
-        private Dictionary<Tuple<string, string>, UInt32> ampliconMinDP = new Dictionary<Tuple<string, string>, UInt32>();
+        private Dictionary<Tuple<string, string>, int> ampliconMinDP = new Dictionary<Tuple<string, string>, int>();
         private Dictionary<string, Tuple<string, string>> fastqFileNames;
 
         public GenotypingPipelineWrapper(ParseSampleSheet _sampleSheet, string _localFastqDir, string _logFilename, string _runID, ProgrammeParameters _parameters, string _networkRootRunDir, Dictionary<string, Tuple<string, string>> _fastqFileNames)
@@ -148,14 +148,14 @@ namespace WRGLPipeline
                 foreach (VCFRecordWithGenotype VCFrecord in VCFFile.getVCFRecords["SampleID"])
                 {
                     //print variants that pass qc
-                    if (VCFrecord.FILTER == @"PASS" && VCFrecord.QUAL >= 30 && Convert.ToUInt32(VCFrecord.infoSubFields[@"DP"]) >= 1000)
+                    if (VCFrecord.FILTER == @"PASS" && VCFrecord.QUAL >= 30 && int.Parse(VCFrecord.infoSubFields[@"DP"]) >= 1000)
                     {
                         tempGenomicVariant.CHROM = VCFrecord.CHROM;
                         tempGenomicVariant.POS = VCFrecord.POS;
                         tempGenomicVariant.REF = VCFrecord.REF;
                         tempGenomicVariant.ALT = VCFrecord.ALT;
 
-                        Tuple<string, UInt32> gTemp = new Tuple<string, UInt32>(VCFrecord.CHROM, VCFrecord.POS);
+                        Tuple<string, int> gTemp = new Tuple<string, int>(VCFrecord.CHROM, VCFrecord.POS);
                         string ampliconID = AuxillaryFunctions.LookupAmpliconID(gTemp, BEDRecords); //lookup variant amplicon
                         string[] ADFields = VCFrecord.formatSubFields["AD"].Split(',');
 
@@ -313,22 +313,22 @@ namespace WRGLPipeline
 
                     checked
                     {
-                        UInt32 startPos;
-                        UInt32 endPos;
-                        UInt32 seqLen = Convert.ToUInt32(fields[3].Length); //sequencne length
+                        int startPos;
+                        int endPos;
+                        int seqLen = int.Parse(fields[3].Length); //sequennce length
                         
-                        startPos = Convert.ToUInt32(fields[2]) - 1; //0-based start
+                        startPos = int.Parse(fields[2]) - 1; //0-based start
                         endPos = startPos + seqLen;
 
                         if (fields[6] == @"+")
                         {
-                            tempRecord.start = startPos + Convert.ToUInt32(fields[4]);
-                            tempRecord.end = endPos - Convert.ToUInt32(fields[5]);
+                            tempRecord.start = startPos + int.Parse(fields[4]);
+                            tempRecord.end = endPos - int.Parse(fields[5]);
                         }
                         else
                         {
-                            tempRecord.start = startPos + Convert.ToUInt32(fields[5]);
-                            tempRecord.end = endPos - Convert.ToUInt32(fields[4]);
+                            tempRecord.start = startPos + int.Parse(fields[5]);
+                            tempRecord.end = endPos - int.Parse(fields[4]);
                         }
 
                     }
@@ -375,7 +375,7 @@ namespace WRGLPipeline
                     else
                     {
                         string[] fields = line.Split('\t');
-                        ampliconMinDP.Add(new Tuple<string, string>(record.Sample_ID, fields[0]), Convert.ToUInt32(fields[3])); //mappedReads
+                        ampliconMinDP.Add(new Tuple<string, string>(record.Sample_ID, fields[0]), int.Parse(fields[3])); //mappedReads
                     }
                 }
 
@@ -388,10 +388,10 @@ namespace WRGLPipeline
         {
             AuxillaryFunctions.WriteLog(@"Calculating coverage values...", logFilename, 0, false, parameters);
 
-            UInt32 pos;
+            int pos;
             string line, ampliconID;
             List<string> sampleIDs = new List<string>();
-            Dictionary<Tuple<string, UInt32>, bool> isBaseCovered = new Dictionary<Tuple<string, UInt32>, bool>(); //bool = observed
+            Dictionary<Tuple<string, int>, bool> isBaseCovered = new Dictionary<Tuple<string, int>, bool>(); //bool = observed
             StringBuilder samtoolsDepthParameter = new StringBuilder();
 
             samtoolsDepthParameter.Append(@"depth ");
@@ -421,7 +421,7 @@ namespace WRGLPipeline
                 //loop over amplicons and initalise dicitonary
                 foreach (BEDRecord amplicon in BEDRecords)
                 {
-                    ampliconMinDP.Add(new Tuple<string, string>(record.Sample_ID, amplicon.name), UInt32.MaxValue); //initalise with maxValue
+                    ampliconMinDP.Add(new Tuple<string, string>(record.Sample_ID, amplicon.name), int.MaxValue); //initalise with maxValue
                 }
 
                 sampleIDs.Add(record.Sample_ID);
@@ -433,9 +433,9 @@ namespace WRGLPipeline
                 //iterate over region
                 for (pos = record.start + 2; pos < record.end + 1; ++pos)
                 {
-                    if (!isBaseCovered.ContainsKey(new Tuple<string, UInt32>(record.chromosome, pos)))
+                    if (!isBaseCovered.ContainsKey(new Tuple<string, int>(record.chromosome, pos)))
                     {
-                        isBaseCovered.Add(new Tuple<string, UInt32>(record.chromosome, pos), false);
+                        isBaseCovered.Add(new Tuple<string, int>(record.chromosome, pos), false);
                     }
                 }
 
@@ -461,24 +461,24 @@ namespace WRGLPipeline
                 while ((line = reader.ReadLine()) != null)
                 {
                     string[] fields = line.Split('\t');
-                    pos = Convert.ToUInt32(fields[1]);
+                    pos = int.Parse(fields[1]);
 
                     //mark base as observed in the dataset
-                    isBaseCovered[new Tuple<string, UInt32>(fields[0], pos)] = true;
+                    isBaseCovered[new Tuple<string, int>(fields[0], pos)] = true;
 
                     for (int n = 2; n < fields.Length; ++n) //skip chrom & pos
                     {
                         //mark amplicon as failed
-                        ampliconID = AuxillaryFunctions.LookupAmpliconID(new Tuple<string, UInt32>(fields[0], pos), BEDRecords);
+                        ampliconID = AuxillaryFunctions.LookupAmpliconID(new Tuple<string, int>(fields[0], pos), BEDRecords);
 
                         if (ampliconID == "")
                         {
                             break;  
                         }
                         
-                        if (ampliconMinDP[new Tuple<string, string>(sampleIDs[n - 2], ampliconID)] > Convert.ToUInt32(fields[n]))
+                        if (ampliconMinDP[new Tuple<string, string>(sampleIDs[n - 2], ampliconID)] > int.Parse(fields[n]))
                         {
-                            ampliconMinDP[new Tuple<string, string>(sampleIDs[n - 2], ampliconID)] = Convert.ToUInt32(fields[n]);
+                            ampliconMinDP[new Tuple<string, string>(sampleIDs[n - 2], ampliconID)] = int.Parse(fields[n]);
                         }
 
                     }
@@ -486,9 +486,9 @@ namespace WRGLPipeline
             }
 
             //reset max val for missing data
-            foreach (KeyValuePair<Tuple<string, UInt32>, bool> chromBase in isBaseCovered){
+            foreach (KeyValuePair<Tuple<string, int>, bool> chromBase in isBaseCovered){
                 if (chromBase.Value == false){ //base not seen in data
-                    ampliconID = AuxillaryFunctions.LookupAmpliconID(new Tuple<string, UInt32>(chromBase.Key.Item1, chromBase.Key.Item2), BEDRecords);
+                    ampliconID = AuxillaryFunctions.LookupAmpliconID(new Tuple<string, int>(chromBase.Key.Item1, chromBase.Key.Item2), BEDRecords);
 
                     //loop over sampleIDs and reset to 0
                     foreach (SampleRecord record in sampleSheet.getSampleRecords) {

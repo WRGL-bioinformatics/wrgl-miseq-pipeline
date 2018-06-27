@@ -267,6 +267,14 @@ namespace WRGLPipeline
                     transferResult = session.PutFiles(parameters.getPanelScriptsDir + @"\*.sh", RemoteSampleFolder + @"/", false, transferOptions);
                     transferResult.Check(); // Throw on any error
 
+                    //copy WRGL pipeline config file if it exists (older pipelines don't have this)
+                    // this doesn't support wildcards, so have to name each possible config file manually.
+                    if (System.IO.File.Exists(parameters.getPanelScriptsDir + @"\WRGLpipeline.config") || System.IO.File.Exists(parameters.getPanelScriptsDir + @"\CEP_PIPELINE.config") || System.IO.File.Exists(parameters.getPanelScriptsDir + @"\ALL_PIPELINES.config"))
+                    {
+                        transferResult = session.PutFiles(parameters.getPanelScriptsDir + @"\*.config", RemoteSampleFolder + @"/", false, transferOptions);
+                        transferResult.Check(); // Throw on any error
+                    }
+
                     //copy BEDfile to RemoteSamplefolder
                     transferResult = session.PutFiles(sampleSheet.getAnalyses[@"P"], RemoteSampleFolder + @"/", false, transferOptions);
                     transferResult.Check(); // Throw on any error
@@ -343,23 +351,28 @@ namespace WRGLPipeline
 
                     // Download files and throw on any error
                     session.GetFiles(scratchDir + runID + @"/" + runID + "_Filtered_Annotated.vcf", localAnalysisDir + @"\").Check();
-                    session.GetFiles(scratchDir + runID + @"/" + runID + "_recalibration_plots.pdf", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/BAMsforDepthAnalysis.list", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/" + runID + "_Coverage.txt", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/PreferredTranscripts.txt", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/*.bed", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/*.sh", localAnalysisDir + @"\").Check();
+                    // for compatibility with older scripts, check if config file exists before downloading
+                    // this doesn't support wildcards, so have to name each possible config file manually.
+                    if (session.FileExists(scratchDir + runID + @"/WRGLpipeline.config") || session.FileExists(scratchDir + runID + @"/CEP_PIPELINE.config") || session.FileExists(scratchDir + runID + @"/ALL_PIPELINES.config"))
+                    {
+                        session.GetFiles(scratchDir + runID + @"/*.config", localAnalysisDir + @"\").Check();
+                    }
                     session.GetFiles(scratchDir + runID + @"/" + sampleSheet.getSampleRecords[1].Sample_ID + @"/*.sh", localAnalysisDir + @"\").Check(); // download a single copy of the scripts from the first sample
 
                     //copy to network
                     File.Copy(localAnalysisDir + @"\" + runID + "_Filtered_Annotated.vcf", networkAnalysisDir + @"\" + runID + "_Filtered_Annotated.vcf");
-                    File.Copy(localAnalysisDir + @"\" + runID + "_recalibration_plots.pdf", networkAnalysisDir + @"\" + runID + "_recalibration_plots.pdf");
                     File.Copy(localAnalysisDir + @"\BAMsforDepthAnalysis.list", networkAnalysisDir + @"\BAMsforDepthAnalysis.list");
                     File.Copy(localAnalysisDir + @"\" + runID + "_Coverage.txt", networkAnalysisDir + @"\" + runID + "_Coverage.txt");
                     File.Copy(localAnalysisDir + @"\PreferredTranscripts.txt", networkAnalysisDir + @"\PreferredTranscripts.txt");
                     //copy files to the network
                     foreach (var f in Directory.GetFiles(localAnalysisDir).Where(path => Regex.Match(path, @".*.bed").Success)) { File.Copy(f, networkAnalysisDir + @"\" + Path.GetFileName(f)); }
                     foreach (var f in Directory.GetFiles(localAnalysisDir).Where(path => Regex.Match(path, @".*.sh").Success)){ File.Copy(f, networkAnalysisDir + @"\" + Path.GetFileName(f)); }
+                    foreach (var f in Directory.GetFiles(localAnalysisDir).Where(path => Regex.Match(path, @".*.config").Success)){ File.Copy(f, networkAnalysisDir + @"\" + Path.GetFileName(f)); }
 
                     return true;
                 }
@@ -489,7 +502,7 @@ namespace WRGLPipeline
                             }
 
                             //print HTSF amplicon (if present)
-                            panelReport.Write(AuxillaryFunctions.LookupAmpliconID(new Tuple<string, UInt32>(VCFrecord.CHROM, VCFrecord.POS), coreBEDRecords.getBEDRecords) + "\t");
+                            panelReport.Write(AuxillaryFunctions.LookupAmpliconID(new Tuple<string, int>(VCFrecord.CHROM, VCFrecord.POS), coreBEDRecords.getBEDRecords) + "\t");
 
                             panelReport.Write(VCFrecord.CHROM + "\t");
                             panelReport.Write(VCFrecord.POS + "\t");
@@ -544,7 +557,7 @@ namespace WRGLPipeline
                         }
 
                         //print HTSF amplicon (if present)
-                        panelReport.Write(AuxillaryFunctions.LookupAmpliconID(new Tuple<string, UInt32>(VCFrecord.CHROM, VCFrecord.POS), coreBEDRecords.getBEDRecords) + "\t");
+                        panelReport.Write(AuxillaryFunctions.LookupAmpliconID(new Tuple<string, int>(VCFrecord.CHROM, VCFrecord.POS), coreBEDRecords.getBEDRecords) + "\t");
 
                         panelReport.Write(VCFrecord.CHROM + "\t");
                         panelReport.Write(VCFrecord.POS + "\t");
@@ -579,8 +592,8 @@ namespace WRGLPipeline
             AuxillaryFunctions.WriteLog(@"Analysing coverage data...", logFilename, 0, false, parameters);
 
             string line, failedAmpliconID;
-            UInt32 pos;
-            Dictionary<Tuple<string, UInt32>, bool> isBaseCovered = new Dictionary<Tuple<string, UInt32>, bool>(); //bool = observed
+            int pos;
+            Dictionary<Tuple<string, int>, bool> isBaseCovered = new Dictionary<Tuple<string, int>, bool>(); //bool = observed
             List<string> sampleIDs = new List<string>();
 
             //read sampleID order
@@ -600,9 +613,9 @@ namespace WRGLPipeline
                 //iterate over region
                 for (pos = record.start + 2; pos < record.end + 1; ++pos)
                 {
-                    if (!isBaseCovered.ContainsKey(new Tuple<string, UInt32>(record.chromosome, pos)))
+                    if (!isBaseCovered.ContainsKey(new Tuple<string, int>(record.chromosome, pos)))
                     {
-                        isBaseCovered.Add(new Tuple<string, UInt32>(record.chromosome, pos), false);
+                        isBaseCovered.Add(new Tuple<string, int>(record.chromosome, pos), false);
                     }
                 }
 
@@ -616,17 +629,17 @@ namespace WRGLPipeline
                 {
                     string[] fields = line.Split('\t');
 
-                    pos = Convert.ToUInt32(fields[1]);
+                    pos = int.Parse(fields[1]);
 
                     //mark base as observed in the dataset
-                    isBaseCovered[new Tuple<string, UInt32>(fields[0], pos)] = true;
+                    isBaseCovered[new Tuple<string, int>(fields[0], pos)] = true;
 
                     for (int n = 2; n < fields.Length; ++n) //skip chrom & pos
                     {
-                        if (Convert.ToUInt32(fields[n]) < Convert.ToUInt32(parameters.getPanelsDepth)) //base has failed
+                        if (int.Parse(fields[n]) < parameters.getPanelsDepth) //base has failed
                         {
                             //mark amplicon as failed
-                            failedAmpliconID = AuxillaryFunctions.LookupAmpliconID(new Tuple<string, UInt32>(fields[0], pos), coreBEDRecords.getBEDRecords);
+                            failedAmpliconID = AuxillaryFunctions.LookupAmpliconID(new Tuple<string, int>(fields[0], pos), coreBEDRecords.getBEDRecords);
 
                             if (failedAmpliconID != "") //skip off target
                             {
@@ -638,7 +651,7 @@ namespace WRGLPipeline
             }
 
             //report missing bases as failed
-            foreach (KeyValuePair<Tuple<string, UInt32>, bool> nucl in isBaseCovered)
+            foreach (KeyValuePair<Tuple<string, int>, bool> nucl in isBaseCovered)
             {
                 if (nucl.Value == false) //base not present in dataset
                 {
