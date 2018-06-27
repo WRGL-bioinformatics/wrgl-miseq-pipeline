@@ -315,7 +315,7 @@ namespace WRGLPipeline
                     {
                         int startPos;
                         int endPos;
-                        int seqLen = int.Parse(fields[3].Length); //sequennce length
+                        int seqLen = fields[3].Length; //sequence length
                         
                         startPos = int.Parse(fields[2]) - 1; //0-based start
                         endPos = startPos + seqLen;
