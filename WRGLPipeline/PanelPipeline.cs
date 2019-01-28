@@ -184,7 +184,7 @@ namespace WRGLPipeline
                     AuxillaryFunctions.WriteLog(@"Connecting To Iridis4a...", logFilename, 0, false, parameters);
                     session.Open(iridis4a);
                 }
-                catch (Exception a)
+                catch (WinSCP.SessionRemoteException a)
                 {
                     AuxillaryFunctions.WriteLog(@"Could not connect: " + a.ToString(), logFilename, -1, false, parameters);
 
@@ -194,7 +194,7 @@ namespace WRGLPipeline
                         AuxillaryFunctions.WriteLog(@"Connecting To Iridis4b...", logFilename, 0, false, parameters);
                         session.Open(iridis4b);
                     }
-                    catch (Exception b)
+                    catch (WinSCP.SessionRemoteException b)
                     {
                         AuxillaryFunctions.WriteLog(@"Could not connect: " + b.ToString(), logFilename, -1, false, parameters);
 
@@ -204,7 +204,7 @@ namespace WRGLPipeline
                             AuxillaryFunctions.WriteLog(@"Connecting To Iridis4c...", logFilename, 0, false, parameters);
                             session.Open(iridis4c);
                         }
-                        catch (Exception c)
+                        catch (WinSCP.SessionRemoteException c)
                         {
                             AuxillaryFunctions.WriteLog(@"Could not connect: " + c.ToString(), logFilename, -1, false, parameters);
                             throw;
