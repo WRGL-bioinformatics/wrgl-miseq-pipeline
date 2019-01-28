@@ -4,6 +4,13 @@ C# pipeline that runs on MiSeq completion and manages data through either panels
 or genotyping pipelines.
 
 ## Version
+v2.1a
+
+## Change summary
+ * MINOR CHANGE: Update error handling for Iridis connection.
+ * Should try A, B, then C login nodes. Currently fails after A.
+
+## Old Version
 v2.1
 
 ## Change summary
