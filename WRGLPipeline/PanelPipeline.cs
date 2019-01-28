@@ -17,8 +17,16 @@ namespace WRGLPipeline
         const double PanelPipelineVerison = 2.1;
 
         //tunnel connection settings
-        private string scratchDir;
-        private string localFastqDir, localAnalysisDir, networkAnalysisDir, runID, logFilename, localReportFilename, networkReportFilename, winscpLogPath, networkRootRunDir;
+        private readonly string scratchDir;
+        private readonly string localFastqDir;
+        private readonly string localAnalysisDir;
+        private readonly string networkAnalysisDir;
+        private readonly string runID;
+        private readonly string logFilename;
+        private readonly string localReportFilename;
+        private readonly string networkReportFilename;
+        private readonly string winscpLogPath;
+        private readonly string networkRootRunDir;
         ProgrammeParameters parameters;
         ParseSampleSheet sampleSheet;
         Dictionary<string, HashSet<string>> failedAmplicons = new Dictionary<string, HashSet<string>>();
@@ -168,10 +176,12 @@ namespace WRGLPipeline
             using (Session session = new Session())
             {
                 TransferOperationResult transferResult;
-                TransferOptions transferOptions = new TransferOptions();
-                transferOptions.TransferMode = TransferMode.Binary;
-                // set the permissions for uploaded files - -rwxrwx-- BS 2016-03-14.
-                transferOptions.FilePermissions = new FilePermissions { Text = "rwxrwx---" };
+                TransferOptions transferOptions = new TransferOptions
+                {
+                    TransferMode = TransferMode.Binary,
+                    // set the permissions for uploaded files - -rwxrwx-- BS 2016-03-14.
+                    FilePermissions = new FilePermissions { Text = "rwxrwx---" }
+                };
                 StringBuilder bashCommand = new StringBuilder();
                 string RemoteSampleFolder;
 
@@ -186,7 +196,7 @@ namespace WRGLPipeline
                 }
                 catch (WinSCP.SessionRemoteException a)
                 {
-                    AuxillaryFunctions.WriteLog(@"Could not connect: " + a.ToString(), logFilename, -1, false, parameters);
+                    AuxillaryFunctions.WriteLog(@"Could not connect: " + a.ToString(), logFilename, 1, false, parameters);
 
                     try //4b
                     {
@@ -196,7 +206,7 @@ namespace WRGLPipeline
                     }
                     catch (WinSCP.SessionRemoteException b)
                     {
-                        AuxillaryFunctions.WriteLog(@"Could not connect: " + b.ToString(), logFilename, -1, false, parameters);
+                        AuxillaryFunctions.WriteLog(@"Could not connect: " + b.ToString(), logFilename, 1, false, parameters);
 
                         try //4c
                         {
@@ -218,7 +228,7 @@ namespace WRGLPipeline
                     AuxillaryFunctions.WriteLog(@"Creating remote directory " + scratchDir + runID, logFilename, 0, false, parameters);
                     session.CreateDirectory(scratchDir + runID);
                 }
-                catch (Exception ex)
+                catch (WinSCP.SessionRemoteException ex)
                 {
                     AuxillaryFunctions.WriteLog(@"Could not create remote directory: " + ex.ToString(), logFilename, -1, false, parameters);
                     throw;
@@ -318,7 +328,7 @@ namespace WRGLPipeline
                 }
                 catch (Exception a)
                 {
-                    AuxillaryFunctions.WriteLog(@"Could not connect " + a.ToString(), logFilename, -1, false, parameters);
+                    AuxillaryFunctions.WriteLog(@"Could not connect " + a.ToString(), logFilename, 1, false, parameters);
 
                     try //4b
                     {
@@ -328,7 +338,7 @@ namespace WRGLPipeline
                     }
                     catch (Exception b)
                     {
-                        AuxillaryFunctions.WriteLog(@"Could not connect " + b.ToString(), logFilename, -1, false, parameters);
+                        AuxillaryFunctions.WriteLog(@"Could not connect " + b.ToString(), logFilename, 1, false, parameters);
 
                         try //4c
                         {
