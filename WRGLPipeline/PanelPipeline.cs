@@ -356,12 +356,7 @@ namespace WRGLPipeline
                     session.GetFiles(scratchDir + runID + @"/PreferredTranscripts.txt", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/*.bed", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/*.sh", localAnalysisDir + @"\").Check();
-                    // for compatibility with older scripts, check if config file exists before downloading
-                    // this doesn't support wildcards, so have to name each possible config file manually.
-                    if (session.FileExists(scratchDir + runID + @"/WRGLpipeline.config") || session.FileExists(scratchDir + runID + @"/CEP_PIPELINE.config") || session.FileExists(scratchDir + runID + @"/ALL_PIPELINES.config"))
-                    {
-                        session.GetFiles(scratchDir + runID + @"/*.config", localAnalysisDir + @"\").Check();
-                    }
+                    session.GetFiles(scratchDir + runID + @"/*.config", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/" + sampleSheet.getSampleRecords[1].Sample_ID + @"/*.sh", localAnalysisDir + @"\").Check(); // download a single copy of the scripts from the first sample
 
                     //copy to network
