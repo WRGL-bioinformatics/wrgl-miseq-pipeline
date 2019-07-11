@@ -9,7 +9,7 @@ namespace WRGLPipeline
 {
     class Programme
     {
-        public const double WRGLversion = 2.0;
+        public const double WRGLversion = 2.2; // 2.1;
 
         private static void Main(string[] args)
         {
@@ -53,7 +53,7 @@ namespace WRGLPipeline
             string sampleSheetPath = suppliedDir + @"\SampleSheetUsed.csv";
             string runID = AuxillaryFunctions.GetRunID(suppliedDir);
             string localLogFilename = localRootRunDir + @"\WRGLPipeline.log";
-            string networkRootRunDir = AuxillaryFunctions.makeNetworkOutputDir(@"\\sdh-public\GENETICSDATA\Illumina\MiSeqOutput\" + runID);
+            string networkRootRunDir = AuxillaryFunctions.MakeNetworkOutputDir(@"\\sdh-public\GENETICSDATA\Illumina\MiSeqOutput\" + runID);
             ProgrammeParameters parameters = new ProgrammeParameters(); //read ini file
 
             //Parse samplesheet
@@ -75,9 +75,10 @@ namespace WRGLPipeline
 
             //compute MD5 for fastqs; copy fastqs, metrics, samplesheet and MD5 to network
             // only run for full analysis, not getdata. BS 2017-09-19.
+            
             if (!parameters.getGetData)
             {
-                FileManagement.BackupFiles(localFastqDir, suppliedDir, localRootRunDir, networkRootRunDir, localLogFilename, parameters);
+              FileManagement.BackupFiles(localFastqDir, suppliedDir, localRootRunDir, networkRootRunDir, localLogFilename, parameters);
             }
             
             // Check analysis type and run appropriate wrapper

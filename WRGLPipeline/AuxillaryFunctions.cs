@@ -10,7 +10,7 @@ namespace WRGLPipeline
 {
     class AuxillaryFunctions
     {
-        public static string makeNetworkOutputDir(string networkRootRunDir)
+        public static string MakeNetworkOutputDir(string networkRootRunDir)
         {
             //define networkRootRunDir
             if (Directory.Exists(networkRootRunDir))
@@ -75,7 +75,7 @@ namespace WRGLPipeline
                 {
                     w.WriteLine("INFO: {0}", logMessage);
                     Console.WriteLine("INFO: {0}", logMessage);
-                } else if (errorCode == 1){
+                } else if (errorCode == 1) {
                     w.WriteLine("WARN: {0}", logMessage);
                     Console.WriteLine("WARN: {0}", logMessage);
                 }
@@ -83,17 +83,19 @@ namespace WRGLPipeline
                 {
                     w.WriteLine("ERROR: {0}", logMessage);
                     Console.WriteLine("ERROR: {0}", logMessage);
+                    
                 }
 
                 w.Close();
             }
 
-            if (errorCode == -1){
-
+            // run failure email must be sent outside logging loop as it attaches
+            // the log file. Within the loop this file handle is open and cannot be attached.
+            if (errorCode == -1)
+            {
                 //send failed email to admin
                 SendRunFailEmail(logFilename, parameters);
             }
-
         }
 
         public static string GetFastqDir(string arg)
@@ -147,17 +149,24 @@ namespace WRGLPipeline
         public static void SendRunFailEmail(string logFilename, ProgrammeParameters parameters) //send admin email to notify of run failure
         {
             //compose email
-            MailMessage mail = new MailMessage();
-            mail.Subject = @"Run failed analysis!";
-            mail.From = new MailAddress(parameters.getAdminEmailAddress);
-            mail.Attachments.Add(new Attachment(logFilename));
+            MailMessage mail = new MailMessage
+            {
+                Subject = @"Run failed analysis!",
+                From = new MailAddress(parameters.getAdminEmailAddress)
+            };
+            // DEV: this is failing as the file is open elsewhere
+            //      ?? why isn't the file handle being close?
+            //      ?? can we send it as a copy?
+            //mail.Attachments.Add(new Attachment(logFilename));
             mail.Attachments.Add(new Attachment(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location) + @"\WRGLPipeline.ini"));
 
             mail.To.Add(parameters.getAdminEmailAddress);
 
             //configure mail
-            SmtpClient smtp = new SmtpClient(@"send.nhs.net", 587);
-            smtp.EnableSsl = true;
+            SmtpClient smtp = new SmtpClient(@"send.nhs.net", 587)
+            {
+                EnableSsl = true
+            };
             System.Net.NetworkCredential netCre = new System.Net.NetworkCredential(parameters.getAdminEmailAddress, parameters.getNHSMailPassword);
             smtp.Credentials = netCre;
 
@@ -295,11 +304,13 @@ namespace WRGLPipeline
             html.Append("</html>");
 
             //compose email
-            MailMessage mail = new MailMessage();
-            mail.Subject = sampleSheet.getExperimentName + @" analysis complete";
-            mail.Body = html.ToString();
-            mail.IsBodyHtml = true;
-            mail.From = new MailAddress(parameters.getAdminEmailAddress);
+            MailMessage mail = new MailMessage
+            {
+                Subject = sampleSheet.getExperimentName + @" analysis complete",
+                Body = html.ToString(),
+                IsBodyHtml = true,
+                From = new MailAddress(parameters.getAdminEmailAddress)
+            };
             mail.Attachments.Add(new Attachment(parameters.getWRGLLogoPath));
 
             //add recipients
@@ -309,8 +320,10 @@ namespace WRGLPipeline
             }
 
             //configure mail
-            SmtpClient smtp = new SmtpClient(@"send.nhs.net", 587);
-            smtp.EnableSsl = true;
+            SmtpClient smtp = new SmtpClient(@"send.nhs.net", 587)
+            {
+                EnableSsl = true
+            };
             System.Net.NetworkCredential netCre = new System.Net.NetworkCredential(parameters.getAdminEmailAddress, ProgrammeParameters.ToInsecureString(parameters.getNHSMailPassword));
             smtp.Credentials = netCre;
 
