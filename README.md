@@ -8,6 +8,7 @@ or genotyping pipelines.
 ### Change summary
  * MINOR CHANGE: Update error handling for Iridis connection.
  * Should try A, B, then C login nodes. Currently fails after A.
+ * MINOR CHANGE: Use aux0_Start_Pipeline.sh to trigger Iridis analysis
 
 NOTE: version was meant to be 2.1a, as it was such a minor change, but it's 
 stored in the program as a float so this was not possible.

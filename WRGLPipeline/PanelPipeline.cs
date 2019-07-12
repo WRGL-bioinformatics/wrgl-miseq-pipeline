@@ -304,7 +304,7 @@ namespace WRGLPipeline
                     bashCommand.Append(@" ");
                     bashCommand.Append(@"&& ");
                     // queue the alignmenet job
-                    bashCommand.Append(@"qsub 1_Nextera_ReadAlignment.sh");
+                    bashCommand.Append(@"./*Start_Pipeline.sh");
 
                     //execute pipeline
                     session.ExecuteCommand(bashCommand.ToString());
