@@ -3,6 +3,14 @@
 C# pipeline that runs on MiSeq completion and manages data through either panels
 or genotyping pipelines.
 
+## Version 2.21
+
+### Change summary
+ * MINOR CHANGE: Downloads coverage .zip file automatically
+
+NOTE: Decided that <major>.<minor><increment> versioning was probably the
+simplest way to go.  
+
 ## Version 2.2
 
 ### Change summary

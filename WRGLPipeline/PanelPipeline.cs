@@ -8,13 +8,11 @@ using System.IO;
 using System.Threading;
 using System.Text.RegularExpressions;
 
-// this is a test. Should not be able to commit!
-
 namespace WRGLPipeline
 {
     class PanelPipeline
     {
-        const double PanelPipelineVerison = 2.1;
+        const double PanelPipelineVerison = 2.21;
 
         //tunnel connection settings
         private readonly string scratchDir;
@@ -367,6 +365,18 @@ namespace WRGLPipeline
                     session.GetFiles(scratchDir + runID + @"/*.bed", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/*.sh", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/*.config", localAnalysisDir + @"\").Check();
+                    try
+                    {
+                        // If <runID>_genecoverage.zip file exists download it
+                        session.GetFiles(scratchDir + runID + @"/_genecoverage.zip", localAnalysisDir + @"\").Check();
+                        // And move it to the network
+                        File.Copy(localAnalysisDir + @"\" + runID + "_genecoverage.zip", networkAnalysisDir + @"\" + runID + "_genecoverage.zip");
+                    }
+                    catch
+                    {
+                        // If it doesn't exist, catch the error and log as this file is not essential
+                        AuxillaryFunctions.WriteLog(@"No genecoverage.zip file found", logFilename, 1, false, parameters);
+                    }
                     session.GetFiles(scratchDir + runID + @"/" + sampleSheet.getSampleRecords[1].Sample_ID + @"/*.sh", localAnalysisDir + @"\").Check(); // download a single copy of the scripts from the first sample
 
                     //copy to network
@@ -374,6 +384,7 @@ namespace WRGLPipeline
                     File.Copy(localAnalysisDir + @"\BAMsforDepthAnalysis.list", networkAnalysisDir + @"\BAMsforDepthAnalysis.list");
                     File.Copy(localAnalysisDir + @"\" + runID + "_Coverage.txt", networkAnalysisDir + @"\" + runID + "_Coverage.txt");
                     File.Copy(localAnalysisDir + @"\PreferredTranscripts.txt", networkAnalysisDir + @"\PreferredTranscripts.txt");
+                    
                     //copy files to the network
                     foreach (var f in Directory.GetFiles(localAnalysisDir).Where(path => Regex.Match(path, @".*.bed").Success)) { File.Copy(f, networkAnalysisDir + @"\" + Path.GetFileName(f)); }
                     foreach (var f in Directory.GetFiles(localAnalysisDir).Where(path => Regex.Match(path, @".*.sh").Success)){ File.Copy(f, networkAnalysisDir + @"\" + Path.GetFileName(f)); }
