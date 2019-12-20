@@ -360,7 +360,7 @@ namespace WRGLPipeline
                     // Download files and throw on any error
                     session.GetFiles(scratchDir + runID + @"/" + runID + "_Filtered_Annotated.vcf", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/BAMsforDepthAnalysis.list", localAnalysisDir + @"\").Check();
-                    session.GetFiles(scratchDir + runID + @"/" + runID + "_Coverage.txt", localAnalysisDir + @"\").Check();
+                    session.GetFiles(scratchDir + runID + @"/" + runID + @"_Coverage.txt", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/PreferredTranscripts.txt", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/*.bed", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/*.sh", localAnalysisDir + @"\").Check();
@@ -368,9 +368,9 @@ namespace WRGLPipeline
                     try
                     {
                         // If <runID>_genecoverage.zip file exists download it
-                        session.GetFiles(scratchDir + runID + @"/_genecoverage.zip", localAnalysisDir + @"\").Check();
+                        session.GetFiles(scratchDir + runID + @"/" + runID + @"_genecoverage.zip", localAnalysisDir + @"\").Check();
                         // And move it to the network
-                        File.Copy(localAnalysisDir + @"\" + runID + "_genecoverage.zip", networkAnalysisDir + @"\" + runID + "_genecoverage.zip");
+                        File.Copy(localAnalysisDir + @"\" + runID + @"_genecoverage.zip", networkAnalysisDir + @"\" + runID + "_genecoverage.zip");
                     }
                     catch
                     {
