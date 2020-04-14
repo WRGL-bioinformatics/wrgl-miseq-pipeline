@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -94,7 +94,7 @@ namespace WRGLPipeline
             if (errorCode == -1)
             {
                 //send failed email to admin
-                SendRunFailEmail(logFilename, parameters);
+                //SendRunFailEmail(logFilename, parameters);
             }
         }
 

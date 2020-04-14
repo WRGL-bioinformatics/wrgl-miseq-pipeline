@@ -159,7 +159,7 @@ namespace WRGLPipeline
                     File.Copy(localReportFilename, parameters.getPanelRepo + @"\" + runID + @"_Panel_" + PanelPipelineVerison + ".report");
 
                     AuxillaryFunctions.WriteLog(@"Variant report path is " + localReportFilename, logFilename, 0, false, parameters);
-                    AuxillaryFunctions.SendRunCompletionEmail(logFilename, parameters.getPanelRepo + @"\" + Path.GetFileName(localReportFilename), sampleSheet, @"Panel_" + PanelPipelineVerison, runID, parameters);
+                    //AuxillaryFunctions.SendRunCompletionEmail(logFilename, parameters.getPanelRepo + @"\" + Path.GetFileName(localReportFilename), sampleSheet, @"Panel_" + PanelPipelineVerison, runID, parameters);
                     return;
                 }
             }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -57,22 +57,39 @@ namespace WRGLPipeline
 
             //map and realign around indels
             List<Task> threadTasks = new List<Task>();
+            
+             // Get the default maximums for the threadpool
+            int workerThreadCount;
+            int ioThreadCount;
+            ThreadPool.GetMaxThreads(out workerThreadCount, out ioThreadCount);
+
+            // Set the maximum number of threads for the threadpool
+            // i.e. Maximum number of threads to start concurrently.
+            ThreadPool.SetMaxThreads(24, ioThreadCount);
+
             foreach (SampleRecord record in sampleSheet.getSampleRecords)
             {
                 if (record.Analysis == @"G")
                 {
-                    GenerateGenotypingVCFs genotypeAnalysis = new GenerateGenotypingVCFs(record, analysisDir, logFilename, parameters, sampleSheet, fastqFileNames[record.Sample_ID]);
-
-                    //queue tasks for multithreading
-                    threadTasks.Add(Task.Factory.StartNew(() =>
+                    
+                    // Queue tasks for multithreading
+                    // Use Task.Run() as this should stay within the limits of available threads
+                    // i.e. it won't try to run 96 analyses in parallel - this kills the PC!
+                    threadTasks.Add(Task.Run(() =>
                     {
+                        GenerateGenotypingVCFs genotypeAnalysis = new GenerateGenotypingVCFs(record, analysisDir, logFilename, parameters, sampleSheet, fastqFileNames[record.Sample_ID]);
+                        Console.WriteLine(@"Starting analysis for sample: " + record.Sample_ID.ToString());
                         genotypeAnalysis.MapReads();
+                        Console.WriteLine(@"Analysis complete for sample: " + record.Sample_ID.ToString());
                     }));
                 }
             }
 
             //wait for jobs to finish
             Task.WaitAll(threadTasks.ToArray());
+
+            // Restore the default threads
+            ThreadPool.SetMaxThreads(workerThreadCount, ioThreadCount);
 
             //call variants, annotate and tabulate
             GenerateGenotypingVCFs.CallSomaticVariants(analysisDir, parameters);
@@ -87,7 +104,7 @@ namespace WRGLPipeline
             foreach (string file in Directory.GetFiles(analysisDir, @"*.txt")) { File.Copy(file, networkAnalysisDir + @"\" + Path.GetFileName(file)); }
             foreach (string file in Directory.GetFiles(analysisDir, @"*.vcf")) { File.Copy(file, networkAnalysisDir + @"\" + Path.GetFileName(file)); }
 
-            AuxillaryFunctions.SendRunCompletionEmail(logFilename, parameters.getGenotypingRepo + @"\" + Path.GetFileName(reportFilename), sampleSheet, @"Genotyping_" + GenotypingPipelineVerison, runID, parameters);
+            //AuxillaryFunctions.SendRunCompletionEmail(logFilename, parameters.getGenotypingRepo + @"\" + Path.GetFileName(reportFilename), sampleSheet, @"Genotyping_" + GenotypingPipelineVerison, runID, parameters);
         }
 
         private void WriteGenotypingReport() //write output report
