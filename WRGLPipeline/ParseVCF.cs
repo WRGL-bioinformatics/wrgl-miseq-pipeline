@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -142,32 +142,36 @@ namespace WRGLPipeline
             string VCFLine;
 
             // Read the file and display it line by line.
-            StreamReader file = new StreamReader(VCFPath);
-
-            while ((VCFLine = file.ReadLine()) != null)
+            using(FileStream stream = new FileStream(VCFPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
-                if (VCFLine == "")
+                using (StreamReader file = new StreamReader(stream))
                 {
-                    continue;
-                }
-                else if (FirstLine == true)
-                {
-
-                    if (VCFLine != "##fileformat=VCFv4.1" && VCFLine != "##fileformat=VCFv4.2")
+                    while ((VCFLine = file.ReadLine()) != null)
                     {
-                        AuxillaryFunctions.WriteLog(@"File format not VCF v4.1 or v4.2, Parser may not function correctly", logFilename, 1, false, parameters);
+                        if (VCFLine == "")
+                        {
+                            continue;
+                        }
+                        else if (FirstLine == true)
+                        {
+
+                            if (VCFLine != "##fileformat=VCFv4.1" && VCFLine != "##fileformat=VCFv4.2")
+                            {
+                                AuxillaryFunctions.WriteLog(@"File format not VCF v4.1 or v4.2, Parser may not function correctly", logFilename, 1, false, parameters);
+                            }
+
+                            FirstLine = false;
+
+                        }
+                        else if (VCFLine[0] == '#')
+                        {
+                            VCFMetaLines.Add(VCFLine);
+                        }
+                        else
+                        {
+                            VCFBody.Add(VCFLine);
+                        }
                     }
-
-                    FirstLine = false;
-
-                }
-                else if (VCFLine[0] == '#')
-                {
-                    VCFMetaLines.Add(VCFLine);
-                }
-                else
-                {
-                    VCFBody.Add(VCFLine);
                 }
             }
         }

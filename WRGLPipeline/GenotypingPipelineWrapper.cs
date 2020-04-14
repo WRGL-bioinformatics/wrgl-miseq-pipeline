@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
 using System.IO;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
@@ -11,7 +12,7 @@ namespace WRGLPipeline
 {
     class GenotypingPipelineWrapper
     {
-        const double GenotypingPipelineVerison = 2.2;
+        const double GenotypingPipelineVerison = 2.22;
 
         private ParseSampleSheet sampleSheet;
         private string localFastqDir, logFilename, runID, networkRootRunDir, analysisDir, networkAnalysisDir, reportFilename;
