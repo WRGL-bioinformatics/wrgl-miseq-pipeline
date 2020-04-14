@@ -3,6 +3,13 @@
 C# pipeline that runs on MiSeq completion and manages data through either panels
 or genotyping pipelines.
 
+## Version 2.22
+
+### Change summary
+ * MINOR CHANGE: Used ThreadPool to limit number of concurrent genotyping analyses.
+ * MINOR CHANGE: Added ForceDeleteDirectory to delete old runs including myeloid
+ * MINOR CHANGE: Removed run completion/failure email calls as this is not currently working.
+
 ## Version 2.21
 
 ### Change summary

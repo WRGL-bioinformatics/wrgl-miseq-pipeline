@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -76,7 +76,8 @@ namespace WRGLPipeline
                     try
                     {
                         AuxillaryFunctions.WriteLog(@"Deleting folder: " + localMiSeqAnalysisDir + directories[n], logFilename, 0, false, parameters);
-                        Directory.Delete(localMiSeqAnalysisDir + directories[n], true);
+                        // Use the custom ForceDeleteDirectory function to remove folders even if there are read only files present
+                        ForceDeleteDirectory(localMiSeqAnalysisDir + directories[n]);
                     }
                     catch (Exception e)
                     {
@@ -92,7 +93,7 @@ namespace WRGLPipeline
                 try
                 {
                     AuxillaryFunctions.WriteLog(@"Deleting folder: " + dir, logFilename, 0, false, parameters);
-                    Directory.Delete(dir, true);
+                    ForceDeleteDirectory(localMiSeqAnalysisDir + directories[n]);
                 }
                 catch (Exception e)
                 {
@@ -100,6 +101,24 @@ namespace WRGLPipeline
                 }
             }
 
+        }
+
+        // <summary>
+        /// Deletes a folder even if it contains read-only files
+        /// </summary>
+        /// <param name="path">Path to the folder to be deleted.</param>
+        public static void ForceDeleteDirectory(string path) 
+        {
+            //TODO Might want to move the try/catch around deleting folders in to here?
+            //     Would have to sort out how best to reference the logFilename etc. first
+            var directory = new DirectoryInfo(path) { Attributes = FileAttributes.Normal };
+            // Set all files in the directory to Normal (i.e. not read only)
+            foreach (var info in directory.GetFileSystemInfos("*", SearchOption.AllDirectories))
+            {
+                info.Attributes = FileAttributes.Normal;
+            }
+            // Then delete them
+            directory.Delete(true);
         }
 
         public static string GetMD5HashFromFile(string fileName)
