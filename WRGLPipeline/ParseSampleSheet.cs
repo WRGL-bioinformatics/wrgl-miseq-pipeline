@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -47,69 +47,70 @@ namespace WRGLPipeline
             Dictionary<string, int> ColumnHeaders = new Dictionary<string, int>(); //Header:Column_Number
             Regex dataRgx = new Regex(@"Data");
 
-            //Pass the file path and file name to the StreamReader constructor
-            StreamReader SampleSheet = new StreamReader(sampleSheetPath);
-
-            //Continue to read until you reach end of file
-            while ((line = SampleSheet.ReadLine()) != null)
+            // Open the SampleSheet for reading
+            using (FileStream stream = new FileStream(sampleSheetPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
-                //skip empty and comma lines
-                if (line == "" || CommaOnlyLine(line) == true)
+                using (StreamReader SampleSheet = new StreamReader(stream))
                 {
-                    continue;
-                }
-
-                //skip lines before [Data]
-                if (dataRgx.IsMatch(line) && passedDataHeader == false)
-                {
-                    passedDataHeader = true;
-                    continue;
-                }
-
-                //on sample section
-                if (passedDataHeader == true)
-                {
-                    //on Sample_ID header
-                    if (n == 0)
+                    //Continue to read until you reach end of file
+                    while ((line = SampleSheet.ReadLine()) != null)
                     {
-                        n = 1; //passed Sample_ID header
-                        fields = line.Split(',');
-
-                        foreach (string field in fields){
-                            ColumnHeaders.Add(field, j);
-                            j++; //0-based index
+                        //skip empty and comma lines
+                        if (line == "" || CommaOnlyLine(line) == true)
+                        {
+                            continue;
                         }
 
-                        continue;
+                        //skip lines before [Data]
+                        if (dataRgx.IsMatch(line) && passedDataHeader == false)
+                        {
+                            passedDataHeader = true;
+                            continue;
+                        }
+
+                        //on sample section
+                        if (passedDataHeader == true)
+                        {
+                            //on Sample_ID header
+                            if (n == 0)
+                            {
+                                n = 1; //passed Sample_ID header
+                                fields = line.Split(',');
+
+                                foreach (string field in fields)
+                                {
+                                    ColumnHeaders.Add(field, j);
+                                    j++; //0-based index
+                                }
+
+                                continue;
+                            }
+
+                            //on sample info. split CSV fields
+                            fields = line.Split(',');
+
+                            tempRecord.Sample_ID = fields[ColumnHeaders[@"Sample_ID"]];
+                            tempRecord.Sample_Name = fields[ColumnHeaders[@"Sample_Name"]];
+                            tempRecord.Sample_No = n;
+
+                            //get analysis type
+                            if (ColumnHeaders.ContainsKey(@"Analysis"))
+                            {
+                                tempRecord.Analysis = fields[ColumnHeaders[@"Analysis"]];
+                            }
+                            else
+                            {
+                                tempRecord.Analysis = "";
+                            }
+
+                            //Add to list
+                            sampleRecords.Add(tempRecord);
+
+                            n++;
+                        }
                     }
-
-                    //on sample info. split CSV fields
-                    fields = line.Split(',');
-
-                    tempRecord.Sample_ID = fields[ColumnHeaders[@"Sample_ID"]];
-                    tempRecord.Sample_Name = fields[ColumnHeaders[@"Sample_Name"]];
-                    tempRecord.Sample_No = n;
-
-                    //get analysis type
-                    if (ColumnHeaders.ContainsKey(@"Analysis"))
-                    {
-                        tempRecord.Analysis = fields[ColumnHeaders[@"Analysis"]];
-                    }
-                    else
-                    {
-                        tempRecord.Analysis = "";
-                    }
-
-                    //Add to list
-                    sampleRecords.Add(tempRecord);
-
-                    n++;
                 }
-
-            } //end reading samplesheet
-
-            //close the file
-            SampleSheet.Close();
+            }
         }
 
         private static bool CommaOnlyLine(string SampleSheetLine)
@@ -134,34 +135,38 @@ namespace WRGLPipeline
             Regex experimentNameRgx = new Regex(@"^Experiment Name");
 
             //Pass the file path and file name to the StreamReader constructor
-            StreamReader SampleSheet = new StreamReader(sampleSheetPath);
-
-            //Continue to read until you reach end of file
-            while ((line = SampleSheet.ReadLine()) != null)
+            using (FileStream stream = new FileStream(sampleSheetPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
-                //skip empty and comma lines
-                if (line == "" || CommaOnlyLine(line) == true)
+                using (StreamReader SampleSheet = new StreamReader(stream))
                 {
-                    continue;
-                }
-
-                if (experimentNameRgx.IsMatch(line))
-                {
-                    fields = line.Split(',');
-
-                    if (fields.Length > 0)
+                    //Continue to read until you reach end of file
+                    while ((line = SampleSheet.ReadLine()) != null)
                     {
-                        experimentName = fields[1];
-                    }
-                    else
-                    {
-                        experimentName = @"Unspecified";
-                    }
+                        //skip empty and comma lines
+                        if (line == "" || CommaOnlyLine(line) == true)
+                        {
+                            continue;
+                        }
 
-                    break;
+                        if (experimentNameRgx.IsMatch(line))
+                        {
+                            fields = line.Split(',');
+
+                            if (fields.Length > 0)
+                            {
+                                experimentName = fields[1];
+                            }
+                            else
+                            {
+                                experimentName = @"Unspecified";
+                            }
+
+                            break;
+                        }
+
+                    }
                 }
-
-            } //end reading file
+            }
         }
 
         private void GetInvestigatorName()
@@ -171,34 +176,37 @@ namespace WRGLPipeline
             Regex investigatorNameRgx = new Regex(@"^Investigator Name");
 
             //Pass the file path and file name to the StreamReader constructor
-            StreamReader SampleSheet = new StreamReader(sampleSheetPath);
-
-            //Continue to read until you reach end of file
-            while ((line = SampleSheet.ReadLine()) != null)
+            using (FileStream stream = new FileStream(sampleSheetPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
-                //skip empty and comma lines
-                if (line == "" || CommaOnlyLine(line) == true)
+                using (StreamReader SampleSheet = new StreamReader(stream))
                 {
-                    continue;
-                }
-
-                if (investigatorNameRgx.IsMatch(line))
-                {
-                    fields = line.Split(',');
-
-                    if (fields.Length > 0)
+                    //Continue to read until you reach end of file
+                    while ((line = SampleSheet.ReadLine()) != null)
                     {
-                        investigatorName = fields[1];
-                    }
-                    else
-                    {
-                        investigatorName = @"Unspecified";
-                    }
+                        //skip empty and comma lines
+                        if (line == "" || CommaOnlyLine(line) == true)
+                        {
+                            continue;
+                        }
 
-                    break;
+                        if (investigatorNameRgx.IsMatch(line))
+                        {
+                            fields = line.Split(',');
+
+                            if (fields.Length > 0)
+                            {
+                                investigatorName = fields[1];
+                            }
+                            else
+                            {
+                                investigatorName = @"Unspecified";
+                            }
+
+                            break;
+                        }
+                    }
                 }
-
-            } //end reading file
+            }
         }
 
         private void GetAnalyses()
@@ -209,37 +217,41 @@ namespace WRGLPipeline
             Regex manifestRgx = new Regex(@"Analysis");
 
             //Pass the file path and file name to the StreamReader constructor
-            StreamReader SampleSheet = new StreamReader(sampleSheetPath);
-
-            //Continue to read until you reach end of file
-            while ((line = SampleSheet.ReadLine()) != null)
+            using (FileStream stream = new FileStream(sampleSheetPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
-                //skip empty and comma lines
-                if (line == "" || CommaOnlyLine(line) == true)
+                using (StreamReader SampleSheet = new StreamReader(stream))
                 {
-                    continue;
-                }
+                    //Continue to read until you reach end of file
+                    while ((line = SampleSheet.ReadLine()) != null)
+                    {
+                        //skip empty and comma lines
+                        if (line == "" || CommaOnlyLine(line) == true)
+                        {
+                            continue;
+                        }
 
-                if (manifestRgx.IsMatch(line) && passedManifestHeader == false)
-                {
-                    passedManifestHeader = true;
-                    continue;
-                }
+                        if (manifestRgx.IsMatch(line) && passedManifestHeader == false)
+                        {
+                            passedManifestHeader = true;
+                            continue;
+                        }
 
-                if (passedManifestHeader == true){
+                        if (passedManifestHeader == true){
 
-                    if (line.Substring(0, 1) == "["){
-                        break;
+                            if (line.Substring(0, 1) == "["){
+                                break;
+                            }
+
+                            fields = line.Split(',');
+
+                            if (fields.Length > 1){
+                                analyses.Add(fields[0], fields[1]); //analysis type P/G,<ROIfile>
+                            }
+                        }
+
                     }
-
-                    fields = line.Split(',');
-
-                    if (fields.Length > 1){
-                        analyses.Add(fields[0], fields[1]); //analysis type P/G,<ROIfile>
-                    }
                 }
-
-            } //end reading file
+            }
         }
 
         public string getInvestigatorName { get { return investigatorName; } }

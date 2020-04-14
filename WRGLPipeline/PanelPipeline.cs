@@ -613,13 +613,18 @@ namespace WRGLPipeline
             List<string> sampleIDs = new List<string>();
 
             //read sampleID order
-            using (StreamReader fileInput = new StreamReader(samtoolsDepthSampleIDFilePath))
+            using(FileStream stream = new FileStream(samtoolsDepthSampleIDFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
-                while ((line = fileInput.ReadLine()) != null)
+                using (StreamReader fileInput = new StreamReader(stream))
                 {
-                    string[] fields = line.Split('_', '.');
-                    sampleIDs.Add(fields[fields.Length - 2]);
-                    failedAmplicons.Add(fields[fields.Length - 2], new HashSet<string>());
+                    {
+                        while ((line = fileInput.ReadLine()) != null)
+                        {
+                            string[] fields = line.Split('_', '.');
+                            sampleIDs.Add(fields[fields.Length - 2]);
+                            failedAmplicons.Add(fields[fields.Length - 2], new HashSet<string>());
+                        }
+                    }
                 }
             }
 
@@ -638,28 +643,33 @@ namespace WRGLPipeline
             }
 
             // loop over output and assign failed to low coverage amplicons
-            using (StreamReader reader = new StreamReader(samtoolsDepthFilePath))
+            using(FileStream stream = new FileStream(samtoolsDepthFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
-                // Loop over the lines in the string.
-                while ((line = reader.ReadLine()) != null)
+                using (StreamReader reader = new StreamReader(stream))
                 {
-                    string[] fields = line.Split('\t');
-
-                    pos = int.Parse(fields[1]);
-
-                    //mark base as observed in the dataset
-                    isBaseCovered[new Tuple<string, int>(fields[0], pos)] = true;
-
-                    for (int n = 2; n < fields.Length; ++n) //skip chrom & pos
                     {
-                        if (int.Parse(fields[n]) < parameters.getPanelsDepth) //base has failed
+                        // Loop over the lines in the string.
+                        while ((line = reader.ReadLine()) != null)
                         {
-                            //mark amplicon as failed
-                            failedAmpliconID = AuxillaryFunctions.LookupAmpliconID(new Tuple<string, int>(fields[0], pos), coreBEDRecords.getBEDRecords);
+                            string[] fields = line.Split('\t');
 
-                            if (failedAmpliconID != "") //skip off target
+                            pos = int.Parse(fields[1]);
+
+                            //mark base as observed in the dataset
+                            isBaseCovered[new Tuple<string, int>(fields[0], pos)] = true;
+
+                            for (int n = 2; n < fields.Length; ++n) //skip chrom & pos
                             {
-                                failedAmplicons[sampleIDs[n - 2]].Add(failedAmpliconID);
+                                if (int.Parse(fields[n]) < parameters.getPanelsDepth) //base has failed
+                                {
+                                    //mark amplicon as failed
+                                    failedAmpliconID = AuxillaryFunctions.LookupAmpliconID(new Tuple<string, int>(fields[0], pos), coreBEDRecords.getBEDRecords);
+
+                                    if (failedAmpliconID != "") //skip off target
+                                    {
+                                        failedAmplicons[sampleIDs[n - 2]].Add(failedAmpliconID);
+                                    }
+                                }
                             }
                         }
                     }

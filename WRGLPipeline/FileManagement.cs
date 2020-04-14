@@ -93,7 +93,7 @@ namespace WRGLPipeline
                 try
                 {
                     AuxillaryFunctions.WriteLog(@"Deleting folder: " + dir, logFilename, 0, false, parameters);
-                    ForceDeleteDirectory(localMiSeqAnalysisDir + directories[n]);
+                    ForceDeleteDirectory(dir);
                 }
                 catch (Exception e)
                 {
