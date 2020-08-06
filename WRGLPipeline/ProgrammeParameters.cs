@@ -1,12 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Security.Cryptography;
 using System.IO;
 using System.Security;
-using System.Xml;
 
 namespace WRGLPipeline
 {
@@ -40,6 +35,7 @@ namespace WRGLPipeline
         private string samtoolsPath;
 
         //[CommonParameters]
+        private string preferredTranscriptsPath;
         private string preferredTranscriptsFile; //ENST list of transcripts
         
         //[AnalysisParameters]
@@ -122,7 +118,8 @@ namespace WRGLPipeline
             PanelsDepth = int.Parse(parameters[@"PanelsDepth"]);
             ExomeDepth = int.Parse(parameters[@"ExomeDepth"]);
 
-            preferredTranscriptsFile = parameters[@"PreferredTranscripts"];
+            preferredTranscriptsPath = parameters[@"PreferredTranscripts"];
+            preferredTranscriptsFile = Path.GetFileName(preferredTranscriptsPath);
             interpretationsFile = parameters[@"Interpretations"];
 
             deleteOldestLocalRun = Convert.ToBoolean(parameters[@"DeleteOldestLocalRun"]);
@@ -277,6 +274,7 @@ namespace WRGLPipeline
         public int getGenotypingQual { get { return GenotypingQual; } }
         public int getPanelsDepth { get { return PanelsDepth; } }
         public int getExomeDepth { get { return ExomeDepth; } }
+        public string getPreferredTranscriptsPath { get { return preferredTranscriptsPath; } }
         public string getPreferredTranscriptsFile { get { return preferredTranscriptsFile; } }
         public string getInterpretationsFile { get { return interpretationsFile; } }
         public bool getDeleteOldestLocalRun { get { return deleteOldestLocalRun; } }
