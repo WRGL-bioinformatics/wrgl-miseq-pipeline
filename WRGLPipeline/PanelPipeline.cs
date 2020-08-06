@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using WinSCP;
 using System.IO;
 using System.Threading;
@@ -232,8 +231,9 @@ namespace WRGLPipeline
                     throw;
                 }
 
-                //upload preferred transcripts file
-                transferResult = session.PutFiles(parameters.getPreferredTranscriptsFile, scratchDir + runID + @"/", false, transferOptions);
+                // Upload preferred transcripts file
+                // This can be done with the full file path from the .ini file, but to download we will need just the file name
+                transferResult = session.PutFiles(parameters.getPreferredTranscriptsPath, scratchDir + runID + @"/", false, transferOptions);
                 transferResult.Check(); // Throw on any error
 
                 //loop over Sample_IDs and upload FASTQs
@@ -361,7 +361,7 @@ namespace WRGLPipeline
                     session.GetFiles(scratchDir + runID + @"/" + runID + "_Filtered_Annotated.vcf", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/BAMsforDepthAnalysis.list", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/" + runID + @"_Coverage.txt", localAnalysisDir + @"\").Check();
-                    session.GetFiles(scratchDir + runID + @"/PreferredTranscripts.txt", localAnalysisDir + @"\").Check();
+                    session.GetFiles(scratchDir + runID + @"/" + parameters.getPreferredTranscriptsFile, localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/*.bed", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/*.sh", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + runID + @"/*.config", localAnalysisDir + @"\").Check();
@@ -383,7 +383,7 @@ namespace WRGLPipeline
                     File.Copy(localAnalysisDir + @"\" + runID + "_Filtered_Annotated.vcf", networkAnalysisDir + @"\" + runID + "_Filtered_Annotated.vcf");
                     File.Copy(localAnalysisDir + @"\BAMsforDepthAnalysis.list", networkAnalysisDir + @"\BAMsforDepthAnalysis.list");
                     File.Copy(localAnalysisDir + @"\" + runID + "_Coverage.txt", networkAnalysisDir + @"\" + runID + "_Coverage.txt");
-                    File.Copy(localAnalysisDir + @"\PreferredTranscripts.txt", networkAnalysisDir + @"\PreferredTranscripts.txt");
+                    File.Copy(localAnalysisDir + @"\" + parameters.getPreferredTranscriptsFile, networkAnalysisDir + @"\" + parameters.getPreferredTranscriptsFile);
                     
                     //copy files to the network
                     foreach (var f in Directory.GetFiles(localAnalysisDir).Where(path => Regex.Match(path, @".*.bed").Success)) { File.Copy(f, networkAnalysisDir + @"\" + Path.GetFileName(f)); }

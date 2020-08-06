@@ -3,19 +3,24 @@
 C# pipeline that runs on MiSeq completion and manages data through either panels
 or genotyping pipelines.
 
-## Version 2.22
+## Version 2.2.3
+
+### Change summary
+ * MINOR CHANGE: Added target PreferredTranscripts and BCInterpretations files to the .ini config file
+
+## Version 2.2.2
 
 ### Change summary
  * MINOR CHANGE: Used ThreadPool to limit number of concurrent genotyping analyses.
  * MINOR CHANGE: Added ForceDeleteDirectory to delete old runs including myeloid
  * MINOR CHANGE: Removed run completion/failure email calls as this is not currently working.
 
-## Version 2.21
+## Version 2.2.1
 
 ### Change summary
  * MINOR CHANGE: Downloads coverage .zip file automatically
 
-NOTE: Decided that <major>.<minor><increment> versioning was probably the
+NOTE: Decided that <major>.<minor>.<increment> versioning was probably the
 simplest way to go.  
 
 ## Version 2.2

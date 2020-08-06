@@ -1,8 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.IO;
 using System.Diagnostics;
 
@@ -360,6 +358,7 @@ namespace WRGLPipeline
             snpEffParameters.Append(@"-no-downstream ");
             snpEffParameters.Append(@"-no-intergenic ");
             snpEffParameters.Append(@"-no-upstream ");
+            snpEffParameters.Append(@"-no INTRAGENIC ");
             snpEffParameters.Append(@"-spliceSiteSize 10 ");
             snpEffParameters.Append(@"-onlyTr ");
             snpEffParameters.Append(parameters.getPreferredTranscriptsFile);
