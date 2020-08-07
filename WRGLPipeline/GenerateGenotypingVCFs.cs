@@ -361,7 +361,7 @@ namespace WRGLPipeline
             snpEffParameters.Append(@"-no INTRAGENIC ");
             snpEffParameters.Append(@"-spliceSiteSize 10 ");
             snpEffParameters.Append(@"-onlyTr ");
-            snpEffParameters.Append(parameters.getPreferredTranscriptsFile);
+            snpEffParameters.Append(parameters.getPreferredTranscriptsPath);
             snpEffParameters.Append(@" ");
             snpEffParameters.Append(@"-noLog "); //sends data back to snpEff; disabled
             snpEffParameters.Append(@"-formatEff "); // for newer SNPEff versions, enables older EFF= format annotations that are pipeline-compatible.
