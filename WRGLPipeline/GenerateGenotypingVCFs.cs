@@ -78,7 +78,8 @@ namespace WRGLPipeline
             samtoolsIndexBamParameters.Append(analysisDir);
             samtoolsIndexBamParameters.Append(@"\");
             samtoolsIndexBamParameters.Append(record.Sample_ID);
-            samtoolsIndexBamParameters.Append(@"_sorted.bai");
+            // DEV: As above
+            samtoolsIndexBamParameters.Append(@".bai");
 
             realignerTargetCreatorParameters.Append(@"-Xmx2g ");
             realignerTargetCreatorParameters.Append(@"-jar ");
@@ -235,9 +236,10 @@ namespace WRGLPipeline
 
             //cleanup files
             File.Delete(analysisDir + @"\" + record.Sample_ID + @".sam");
-            File.Delete(analysisDir + @"\" + record.Sample_ID + @"_unsorted.bam");
-            File.Delete(analysisDir + @"\" + record.Sample_ID + @"_sorted.bam");
-            File.Delete(analysisDir + @"\" + record.Sample_ID + @"_sorted.bai");
+            // DEV: These fies will not exist in the COVID version
+            //File.Delete(analysisDir + @"\" + record.Sample_ID + @"_unsorted.bam");
+            //File.Delete(analysisDir + @"\" + record.Sample_ID + @"_sorted.bam");
+            //File.Delete(analysisDir + @"\" + record.Sample_ID + @"_sorted.bai");
             File.Move(analysisDir + @"\" + record.Sample_ID + @".bai", analysisDir + @"\" + record.Sample_ID + @".bam.bai");
         }
 
