@@ -62,12 +62,11 @@ namespace WRGLPipeline
             samtoolsSortBamParameters.Append(analysisDir);
             samtoolsSortBamParameters.Append(@"\");
             samtoolsSortBamParameters.Append(record.Sample_ID);
-            // DEV: for covid we want to use the output of this step, so we removed the _unsorted tag
-            samtoolsSortBamParameters.Append(@".bam ");
+            samtoolsSortBamParameters.Append(@"_unsorted.bam ");
             samtoolsSortBamParameters.Append(analysisDir);
             samtoolsSortBamParameters.Append(@"\");
+            // DEV: for covid use we want to use this step as the final BAM
             samtoolsSortBamParameters.Append(record.Sample_ID);
-            samtoolsSortBamParameters.Append(@"_sorted");
 
             samtoolsIndexBamParameters.Append(@"index ");
             samtoolsIndexBamParameters.Append(analysisDir);
@@ -237,7 +236,7 @@ namespace WRGLPipeline
             //cleanup files
             File.Delete(analysisDir + @"\" + record.Sample_ID + @".sam");
             // DEV: These fies will not exist in the COVID version
-            //File.Delete(analysisDir + @"\" + record.Sample_ID + @"_unsorted.bam");
+            File.Delete(analysisDir + @"\" + record.Sample_ID + @"_unsorted.bam");
             //File.Delete(analysisDir + @"\" + record.Sample_ID + @"_sorted.bam");
             //File.Delete(analysisDir + @"\" + record.Sample_ID + @"_sorted.bai");
             File.Move(analysisDir + @"\" + record.Sample_ID + @".bai", analysisDir + @"\" + record.Sample_ID + @".bam.bai");

@@ -18,6 +18,7 @@ namespace WRGLPipeline
         private List<BEDRecord> BEDRecords = new List<BEDRecord>();
         private Dictionary<Tuple<string, string>, int> ampliconMinDP = new Dictionary<Tuple<string, string>, int>();
         private Dictionary<string, Tuple<string, string>> fastqFileNames;
+        private Int32 regiondepth;
 
         public GenotypingPipelineWrapper(ParseSampleSheet _sampleSheet, string _localFastqDir, string _logFilename, string _runID, ProgrammeParameters _parameters, string _networkRootRunDir, Dictionary<string, Tuple<string, string>> _fastqFileNames)
         {
@@ -253,11 +254,19 @@ namespace WRGLPipeline
                 //print Normal/Fail
                 foreach (BEDRecord region in BEDRecords) //iterate over all amplicons
                 {
+                    try
+                    {
+                        regiondepth = ampliconMinDP[new Tuple<string, string>(sampleRecord.Sample_ID, region.name)];
+                    }
+                    catch
+                    {
+                        regiondepth = 0;
+                    }
                     if (mutantAmplicons.Contains(region.name) == true)
                     {
                         continue; //skip mutant amplicons
                     }
-                    else if (ampliconMinDP[new Tuple<string, string>(sampleRecord.Sample_ID, region.name)] < 1000)  //this amplicon failed
+                    else if (ampliconMinDP[new Tuple<string, string>(sampleRecord.Sample_ID, region.name)] < parameters.getGenotypingDepth )  //this amplicon failed
                     {
                         genotypingReport.Write(sampleRecord.Sample_ID);
                         genotypingReport.Write("\t");
