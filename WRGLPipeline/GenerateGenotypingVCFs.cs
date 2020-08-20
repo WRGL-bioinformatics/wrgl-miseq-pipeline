@@ -62,7 +62,8 @@ namespace WRGLPipeline
             samtoolsSortBamParameters.Append(analysisDir);
             samtoolsSortBamParameters.Append(@"\");
             samtoolsSortBamParameters.Append(record.Sample_ID);
-            samtoolsSortBamParameters.Append(@"_unsorted.bam ");
+            // DEV: for covid we want to use the output of this step, so we removed the _unsorted tag
+            samtoolsSortBamParameters.Append(@".bam ");
             samtoolsSortBamParameters.Append(analysisDir);
             samtoolsSortBamParameters.Append(@"\");
             samtoolsSortBamParameters.Append(record.Sample_ID);
@@ -72,7 +73,8 @@ namespace WRGLPipeline
             samtoolsIndexBamParameters.Append(analysisDir);
             samtoolsIndexBamParameters.Append(@"\");
             samtoolsIndexBamParameters.Append(record.Sample_ID);
-            samtoolsIndexBamParameters.Append(@"_sorted.bam ");
+            // DEV: See note on prev. step
+            samtoolsIndexBamParameters.Append(@".bam ");
             samtoolsIndexBamParameters.Append(analysisDir);
             samtoolsIndexBamParameters.Append(@"\");
             samtoolsIndexBamParameters.Append(record.Sample_ID);
@@ -202,32 +204,32 @@ namespace WRGLPipeline
             logFile.Write(samtoolsIndexBam.StandardError.ReadToEnd());
 
             //create regions file to run realigner over
-            Process realignerTargetCreator = new Process();
-            realignerTargetCreator.StartInfo.FileName = parameters.getJavaPath;
-            realignerTargetCreator.StartInfo.Arguments = realignerTargetCreatorParameters.ToString();
-            realignerTargetCreator.StartInfo.UseShellExecute = false;
-            realignerTargetCreator.StartInfo.RedirectStandardOutput = true;
-            realignerTargetCreator.StartInfo.RedirectStandardError = true;
-            realignerTargetCreator.Start();
-            logFile.Write(realignerTargetCreator.StandardOutput.ReadToEnd());
-            logFile.Write(realignerTargetCreator.StandardError.ReadToEnd());
+            //Process realignerTargetCreator = new Process();
+            //realignerTargetCreator.StartInfo.FileName = parameters.getJavaPath;
+            //realignerTargetCreator.StartInfo.Arguments = realignerTargetCreatorParameters.ToString();
+            //realignerTargetCreator.StartInfo.UseShellExecute = false;
+            //realignerTargetCreator.StartInfo.RedirectStandardOutput = true;
+            //realignerTargetCreator.StartInfo.RedirectStandardError = true;
+            //realignerTargetCreator.Start();
+            //logFile.Write(realignerTargetCreator.StandardOutput.ReadToEnd());
+            //logFile.Write(realignerTargetCreator.StandardError.ReadToEnd());
 
-            realignerTargetCreator.WaitForExit();
-            realignerTargetCreator.Close();
+            //realignerTargetCreator.WaitForExit();
+            //realignerTargetCreator.Close();
 
             //realign over intervals
-            Process indelRealigner = new Process();
-            indelRealigner.StartInfo.FileName = parameters.getJavaPath;
-            indelRealigner.StartInfo.Arguments = indelRealignerParameters.ToString();
-            indelRealigner.StartInfo.UseShellExecute = false;
-            indelRealigner.StartInfo.RedirectStandardOutput = true;
-            indelRealigner.StartInfo.RedirectStandardError = true;
-            indelRealigner.Start();
-            logFile.Write(indelRealigner.StandardOutput.ReadToEnd());
-            logFile.Write(indelRealigner.StandardError.ReadToEnd());
+            //Process indelRealigner = new Process();
+            //indelRealigner.StartInfo.FileName = parameters.getJavaPath;
+            //indelRealigner.StartInfo.Arguments = indelRealignerParameters.ToString();
+            //indelRealigner.StartInfo.UseShellExecute = false;
+            //indelRealigner.StartInfo.RedirectStandardOutput = true;
+            //indelRealigner.StartInfo.RedirectStandardError = true;
+            //indelRealigner.Start();
+            //logFile.Write(indelRealigner.StandardOutput.ReadToEnd());
+            //logFile.Write(indelRealigner.StandardError.ReadToEnd());
 
-            indelRealigner.WaitForExit();
-            indelRealigner.Close();
+            //indelRealigner.WaitForExit();
+            //indelRealigner.Close();
 
             logFile.Close();
 
