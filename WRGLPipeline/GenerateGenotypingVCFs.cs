@@ -255,17 +255,17 @@ namespace WRGLPipeline
             somaticVariantCallerParameter.Append(@"-t 4 ");
             somaticVariantCallerParameter.Append(@"-f 0.01 ");
             somaticVariantCallerParameter.Append(@"-fo false ");
-            somaticVariantCallerParameter.Append(@"-b 20 ");
+            somaticVariantCallerParameter.Append(@"-b 1000000 ");
             somaticVariantCallerParameter.Append(@"-q 100 ");
-            somaticVariantCallerParameter.Append(@"-c 0 ");
-            somaticVariantCallerParameter.Append(@"-a 20 ");
-            somaticVariantCallerParameter.Append(@"-F 20 ");
+            somaticVariantCallerParameter.Append(@"-c 1000000 ");
+            somaticVariantCallerParameter.Append(@"-a 1000000 ");
+            somaticVariantCallerParameter.Append(@"-F 1000000 ");
             somaticVariantCallerParameter.Append(@"-gVCF false ");
             somaticVariantCallerParameter.Append(@"-i false ");
             somaticVariantCallerParameter.Append(@"-r ");
             somaticVariantCallerParameter.Append(analysisDir);
             somaticVariantCallerParameter.Append(@" ");
-            somaticVariantCallerParameter.Append(@"-m 0");
+            somaticVariantCallerParameter.Append(@"-m 1000000");
 
             //realign over intervals
             Process callSomaticVariants = new Process();
