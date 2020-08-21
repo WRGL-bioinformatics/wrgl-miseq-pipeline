@@ -111,8 +111,12 @@
     <Error Condition="!Exists('..\packages\WinSCP.5.17.7\build\WinSCP.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\WinSCP.5.17.7\build\WinSCP.targets'))" />
   </Target>
   <PropertyGroup>
-    <PostBuildEvent>
-    </PostBuildEvent>
+    <PostBuildEvent>mkdir "$(TargetDir)\bin"
+copy "$(ProjectDir)Static\WRGLPipeline.ini" "$(TargetDir)bin\WRGLPipeline.ini"
+copy "$(ProjectDir)Static\PipelineInterface.exe" "$(TargetDir)PipelineInterface.exe"
+move "$(TargetDir)WinSCP.exe" "$(TargetDir)\bin\WinSCP.exe"
+move "$(TargetDir)WinSCPnet.dll" "$(TargetDir)\bin\WinSCPnet.dll"
+move "$(TargetDir)WRGLPipeline.exe" "$(TargetDir)\bin\WRGLPipeline.exe"</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
