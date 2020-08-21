@@ -266,7 +266,7 @@ namespace WRGLPipeline
                     {
                         continue; //skip mutant amplicons
                     }
-                    else if (ampliconMinDP[new Tuple<string, string>(sampleRecord.Sample_ID, region.name)] < parameters.getGenotypingDepth )  //this amplicon failed
+                    else if (regiondepth < parameters.getGenotypingDepth )  //this amplicon failed
                     {
                         genotypingReport.Write(sampleRecord.Sample_ID);
                         genotypingReport.Write("\t");
@@ -274,7 +274,7 @@ namespace WRGLPipeline
                         genotypingReport.Write("\t" + region.name);
                         genotypingReport.Write("\t" + GenotypingPipelineVerison);
                         genotypingReport.Write("\tFailed\t\t\t\t\t\t");
-                        genotypingReport.Write(ampliconMinDP[new Tuple<string, string>(sampleRecord.Sample_ID, region.name)]);
+                        genotypingReport.Write(regiondepth);
                         genotypingReport.WriteLine();
                     }
                     else //normal
@@ -285,7 +285,7 @@ namespace WRGLPipeline
                         genotypingReport.Write("\t" + region.name);
                         genotypingReport.Write("\t" + GenotypingPipelineVerison);
                         genotypingReport.Write("\tNo Mutation Detected\t\t\t\t\t\t");
-                        genotypingReport.Write(ampliconMinDP[new Tuple<string, string>(sampleRecord.Sample_ID, region.name)]);
+                        genotypingReport.Write(regiondepth);
                         genotypingReport.WriteLine();
                     }
 
