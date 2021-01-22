@@ -8,6 +8,10 @@ namespace WRGLPipeline
 {
     class AuxillaryFunctions
     {
+        /// <summary>
+        /// Creates the network folder for backup of run files
+        /// </summary>
+        /// <param name="networkRootRunDir">Directory for network file backup</param>
         public static string MakeNetworkOutputDir(string networkRootRunDir)
         {
             //define networkRootRunDir
@@ -35,70 +39,93 @@ namespace WRGLPipeline
             return networkRootRunDir;
         }
 
-        //return concatinated string for multiple amplicons
+        /// <summary>
+        /// Looks up the BED file region which contains the given variant
+        /// </summary>
+        /// <param name="gVariant">The variant to look up</param>
+        /// <param name="BEDRecords">Parsed BED file</param>
+        /// <returns>Name of the BED region containing the variant, or a blank string if no matches found</returns>
         public static string LookupAmpliconID(Tuple<string, int> gVariant, List<BEDRecord> BEDRecords) //give genomic coordinate return amplicon name
         {
             //iterate over records
             foreach (BEDRecord record in BEDRecords)
             {
                 //check if base falls within region
-                if (record.chromosome == gVariant.Item1)
+                if (record.Chromosome == gVariant.Item1)
                 {
-
-                    if (gVariant.Item2 >= record.start && gVariant.Item2 <= record.end) //missing base belongs to this region
+                    //missing base belongs to this region
+                    if (gVariant.Item2 >= record.Start && gVariant.Item2 <= record.End)
                     {
-                        return record.name;
+                        return record.Name;
                     }
-
                 }
             }
-
-            return ""; //return blank amplicon
+            //return blank amplicon
+            return "";
         }
 
+        /// <summary>
+        /// Log function - Writes to a log file and also displays message on the console
+        /// </summary>
+        /// <param name="logMessage">Message to be reported</param>
+        /// <param name="logFilename">DEPRECATED - this is now found in ProgrammeParameters</param>
+        /// <param name="errorCode">Error code to prepend to message - 0: INFO, 1: WARNING, -1: ERROR</param>
+        /// <param name="firstUse">If this is the first time the logger has been used it displays a different message</param>
+        /// <param name="parameters">Configured ProgrammeParameters</param>
+        /// <remarks>
+        /// TODO: Put firstUse into ProgrammeParameters or just into the class namespace and see if it can be remembered that way
+        /// DEV: Just for neatness, could write a function to combine the logfile and Console writes - maybe a trainee exercise?
+        /// </remarks>
         public static void WriteLog(string logMessage, string logFilename, int errorCode, bool firstUse, ProgrammeParameters parameters)
         {
-            using (StreamWriter w = File.AppendText(logFilename))
+            using (StreamWriter logfile = File.AppendText(parameters.LocalLogFilename))
             {
+                // If it's the first time the log has been written (for this running of the pipeline)
+                // write a basic header
                 if (firstUse == true)
                 {
-                    w.WriteLine(@"Starting WRGL Pipeline v" + Programme.WRGLversion);
+                    logfile.WriteLine(@"Starting WRGL Pipeline v" + Programme.WRGLversion);
                     Console.WriteLine(@"Starting WRGL Pipeline v" + Programme.WRGLversion);
                 }
 
-                w.Write("{0} {1} ", DateTime.Now.ToShortDateString(), DateTime.Now.ToLongTimeString());
+                logfile.Write("{0} {1} ", DateTime.Now.ToShortDateString(), DateTime.Now.ToLongTimeString());
                 Console.Write("{0} {1} ", DateTime.Now.ToShortDateString(), DateTime.Now.ToLongTimeString());
 
-                if (errorCode == 0)
+                // We want to change the error level message depending on the errorCode
+                switch (errorCode)
                 {
-                    w.WriteLine("INFO: {0}", logMessage);
-                    Console.WriteLine("INFO: {0}", logMessage);
-                } else if (errorCode == 1) {
-                    w.WriteLine("WARN: {0}", logMessage);
-                    Console.WriteLine("WARN: {0}", logMessage);
+                    case 0:
+                        logfile.WriteLine("INFO: {0}", logMessage);
+                        Console.WriteLine("INFO: {0}", logMessage);
+                        break;
+                    case 1:
+                        logfile.WriteLine("WARN: {0}", logMessage);
+                        Console.WriteLine("WARN: {0}", logMessage);
+                        break;
+                    case -1:
+                        logfile.WriteLine("ERROR: {0}", logMessage);
+                        Console.WriteLine("ERROR: {0}", logMessage);
+                        break;
                 }
-                else if (errorCode == -1)
-                {
-                    w.WriteLine("ERROR: {0}", logMessage);
-                    Console.WriteLine("ERROR: {0}", logMessage);
-                    
-                }
-
-                w.Close();
             }
-
+            // DEV: Emailing is not currently working
             // run failure email must be sent outside logging loop as it attaches
             // the log file. Within the loop this file handle is open and cannot be attached.
-            if (errorCode == -1)
-            {
-                //send failed email to admin
-                //SendRunFailEmail(logFilename, parameters);
-            }
+            //if (errorCode == -1)
+            //{
+            //send failed email to admin
+            //SendRunFailEmail(parameters);
+            //}
         }
 
-        public static string GetFastqDir(string arg)
+        /// <summary>
+        /// Works out the fastq-containing folder path from the Alignment folder
+        /// </summary>
+        /// <param name="SuppliedDir">String representing path to the Alignment folder</param>
+        /// <returns>String representing path to the fastq containing folder</returns>
+        public static string GetFastqDir(string SuppliedDir)
         {
-            string[] folders = arg.Split('\\');
+            string[] folders = SuppliedDir.Split('\\');
             StringBuilder tempBuilder = new StringBuilder();
 
             //extract fastqDir
@@ -110,15 +137,25 @@ namespace WRGLPipeline
             return tempBuilder.ToString();
         }
 
-        public static string GetRunID(string arg)
+        /// <summary>
+        /// Works out the Run ID from the path to the Alignment folder
+        /// </summary>
+        /// <param name="SuppliedDir">String representing path to the Alignment folder</param>
+        /// <returns>Run/cartridge ID of the target run</returns>
+        public static string GetRunID(string SuppliedDir)
         {
-            string[] folders = arg.Split('\\');
+            string[] folders = SuppliedDir.Split('\\');
             return folders[folders.Length - 5];
         }
 
-        public static string GetRootRunDir(string arg)
+        /// <summary>
+        /// Works out the root directory of the run from the path to the Alignment folder
+        /// </summary>
+        /// <param name="SuppliedDir">String representing path to the Alignment folder</param>
+        /// <returns>String representing path to the root directory of the given run</returns>
+        public static string GetRootRunDir(string SuppliedDir)
         {
-            string[] folders = arg.Split('\\');
+            string[] folders = SuppliedDir.Split('\\');
             StringBuilder tempBuilder = new StringBuilder();
 
             //extract fastqDir
@@ -130,9 +167,16 @@ namespace WRGLPipeline
             return tempBuilder.ToString();
         }
 
-        public static string GetLocalAnalysisFolderDir(string arg)
+        /// <summary>
+        /// Works out the analysis folder from the Alignment folder.
+        /// Analysis folder is the folder *containing* the run folder
+        /// (e.g. generally expected to be MiseqAnalysis)
+        /// </summary>
+        /// <param name="SuppliedDir">String representing path to the Alignment folder</param>
+        /// <returns>String representing path to the local analysis folder</returns>
+        public static string GetLocalAnalysisFolderDir(string SuppliedDir)
         {
-            string[] folders = arg.Split('\\');
+            string[] folders = SuppliedDir.Split('\\');
             StringBuilder tempBuilder = new StringBuilder();
 
             //extract local run dir
@@ -144,13 +188,18 @@ namespace WRGLPipeline
             return tempBuilder.ToString();
         }
 
-        public static void SendRunFailEmail(string logFilename, ProgrammeParameters parameters) //send admin email to notify of run failure
+        /// <summary>
+        /// Send an email to the admin email address if the run fails
+        /// </summary>
+        /// <param name="parameters">Configured ProgrammeParameters</param>
+        /// <remarks>NOT CURRENTLY IN USE</remarks>
+        public static void SendRunFailEmail(ProgrammeParameters parameters) //send admin email to notify of run failure
         {
             //compose email
             MailMessage mail = new MailMessage
             {
                 Subject = @"Run failed analysis!",
-                From = new MailAddress(parameters.getAdminEmailAddress)
+                From = new MailAddress(parameters.AdminEmailAddress)
             };
             // DEV: this is failing as the file is open elsewhere
             //      ?? why isn't the file handle being close?
@@ -158,14 +207,14 @@ namespace WRGLPipeline
             //mail.Attachments.Add(new Attachment(logFilename));
             mail.Attachments.Add(new Attachment(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location) + @"\WRGLPipeline.ini"));
 
-            mail.To.Add(parameters.getAdminEmailAddress);
+            mail.To.Add(parameters.AdminEmailAddress);
 
             //configure mail
             SmtpClient smtp = new SmtpClient(@"send.nhs.net", 587)
             {
                 EnableSsl = true
             };
-            System.Net.NetworkCredential netCre = new System.Net.NetworkCredential(parameters.getAdminEmailAddress, parameters.getNHSMailPassword);
+            System.Net.NetworkCredential netCre = new System.Net.NetworkCredential(parameters.AdminEmailAddress, parameters.NHSMailPassword);
             smtp.Credentials = netCre;
 
             //send mail
@@ -179,6 +228,16 @@ namespace WRGLPipeline
             }
         }
 
+        /// <summary>
+        /// Send an email to all specified users on run completion
+        /// </summary>
+        /// <param name="logFilename"></param>
+        /// <param name="variantReportFilePath"></param>
+        /// <param name="sampleSheet"></param>
+        /// <param name="pipelineID"></param>
+        /// <param name="runID"></param>
+        /// <param name="parameters"></param>
+        /// <remarks>NOT CURRENTLY IN USE</remarks>
         public static void SendRunCompletionEmail(string logFilename, string variantReportFilePath, ParseSampleSheet sampleSheet, string pipelineID, string runID, ProgrammeParameters parameters)
         {
             StringBuilder html = new StringBuilder();
@@ -221,7 +280,7 @@ namespace WRGLPipeline
             html.Append("</tr>");
             html.Append("<tr>");
             html.Append("<td style=\"font-size:11px;font-family:LucidaGrande,tahoma,verdana,arial,sans-serif;padding-top:5px;\">");
-            html.AppendFormat("<span style=\"color:#111111;font-size:14px;font-weight:bold;\">Analysis complete for {0}</span>", sampleSheet.getExperimentName);
+            html.AppendFormat("<span style=\"color:#111111;font-size:14px;font-weight:bold;\">Analysis complete for {0}</span>", sampleSheet.ExperimentName);
             html.Append("</td>");
             html.Append("</tr>");
             html.Append("<tr>");
@@ -236,7 +295,7 @@ namespace WRGLPipeline
             html.Append("</tr>");
             html.Append("<tr>");
             html.Append("<td style=\"font-size:12px;font-family:LucidaGrande,tahoma,verdana,arial,sans-serif;padding-top:5px;\">");
-            html.AppendFormat("<span style=\"color:#111111;\">Investigator Name: {0}</span>", sampleSheet.getInvestigatorName);
+            html.AppendFormat("<span style=\"color:#111111;\">Investigator Name: {0}</span>", sampleSheet.InvestigatorName);
             html.Append("</td>");
             html.Append("</tr>");
             html.Append("</table>");
@@ -304,15 +363,15 @@ namespace WRGLPipeline
             //compose email
             MailMessage mail = new MailMessage
             {
-                Subject = sampleSheet.getExperimentName + @" analysis complete",
+                Subject = sampleSheet.ExperimentName + @" analysis complete",
                 Body = html.ToString(),
                 IsBodyHtml = true,
-                From = new MailAddress(parameters.getAdminEmailAddress)
+                From = new MailAddress(parameters.AdminEmailAddress)
             };
-            mail.Attachments.Add(new Attachment(parameters.getWRGLLogoPath));
+            mail.Attachments.Add(new Attachment(parameters.WRGLLogoPath));
 
             //add recipients
-            foreach (string recipient in parameters.getEmailRecipients)
+            foreach (string recipient in parameters.GetEmailRecipients)
             {
                 mail.To.Add(recipient);
             }
@@ -322,7 +381,7 @@ namespace WRGLPipeline
             {
                 EnableSsl = true
             };
-            System.Net.NetworkCredential netCre = new System.Net.NetworkCredential(parameters.getAdminEmailAddress, ProgrammeParameters.ToInsecureString(parameters.getNHSMailPassword));
+            System.Net.NetworkCredential netCre = new System.Net.NetworkCredential(parameters.AdminEmailAddress, ProgrammeParameters.ToInsecureString(parameters.NHSMailPassword));
             smtp.Credentials = netCre;
 
             //send mail
@@ -336,6 +395,5 @@ namespace WRGLPipeline
             }
 
         }
-
     }
 }

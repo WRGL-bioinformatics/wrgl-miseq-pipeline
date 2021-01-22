@@ -1,258 +1,271 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace WRGLPipeline
 {
-    public struct SampleRecord
+    struct SampleRecord
     {
-        public string Sample_ID, Sample_Name, Analysis;
-        public int Sample_No;
+        public string Sample_ID { get; private set; }
+        public string Sample_Name { get; private set; }
+        public string Analysis { get; private set; }
+        public int Sample_No { get; private set; }
+        /// <summary>
+        /// Holds the details of a sample as read from the samplesheet
+        /// </summary>
+        /// <param name="sampleid">Sequencing ID of the sample</param>
+        /// <param name="samplename">Name of the sample</param>
+        /// <param name="analysis">Target analysis pipeline</param>
+        /// <param name="samplenumber">Starlims ID of the sample</param>
+        public SampleRecord(string sampleid, string samplename, string analysis, int samplenumber)
+        {
+            this.Sample_ID = sampleid;
+            this.Sample_Name = samplename;
+            this.Analysis = analysis;
+            this.Sample_No = samplenumber;
+        }
     }
 
     class ParseSampleSheet
     {
-        string sampleSheetPath, localFastqDir, logFilename, experimentName, investigatorName;
-        ProgrammeParameters parameters;
-        List<SampleRecord> sampleRecords = new List<SampleRecord>();
-        Dictionary<string, string> analyses = new Dictionary<string, string>();
+        public string ExperimentName { get; private set; }
+        public string InvestigatorName { get; private set; }
+        public List<SampleRecord> SampleRecords { get; private set; }
+        public Dictionary<string, string> Analyses { get; private set; }
 
-        public ParseSampleSheet(string _sampleSheetPath, string _localFastqDir, string _logFilename, ProgrammeParameters _parameters)
+        readonly private ProgrammeParameters parameters;
+
+        /// <summary>
+        /// Read an Illumina SampleSheet.csv to get sample IDs and names
+        /// </summary>
+        /// <param name="parameters">Configured ProgrammeParameters</param>
+        public ParseSampleSheet( ProgrammeParameters parameters)
         {
-            this.sampleSheetPath = _sampleSheetPath;
-            this.localFastqDir = _localFastqDir;
-            this.logFilename = _logFilename;
-            this.parameters = _parameters;
-
-            if (!File.Exists(sampleSheetPath)) { AuxillaryFunctions.WriteLog(sampleSheetPath + @" does not exist!", logFilename, -1, true, parameters); throw new FileNotFoundException(); }
+            // If this isn't declared here (and above), then each function needs to have parameters passed to it.
+            this.parameters = parameters;
+            // If the samplesheet doesn't exist then raise an exception.
+            if (!File.Exists(parameters.SampleSheetPath))
+            {
+                AuxillaryFunctions.WriteLog(parameters.SampleSheetPath + @" does not exist!", parameters.LocalLogFilename, -1, true, parameters);
+                throw new FileNotFoundException();
+            }
 
             //populate fields
-            PopulateSampleSheetEntries();
-            GetExperimentName();
-            GetInvestigatorName();
-            GetAnalyses();
+            this.SampleRecords = PopulateSampleSheetEntries();
+            this.ExperimentName = GetSampleSheetField("Experiment Name");
+            this.InvestigatorName = GetSampleSheetField("Investigator Name");
+            this.Analyses = GetSampleSheetField("Analysis");
         }
 
-        private void PopulateSampleSheetEntries()
+        /// <summary>
+        /// Reads each sample line and creates a SampleRecord each, which
+        /// is added to a list.
+        /// </summary>
+        private List<SampleRecord> PopulateSampleSheetEntries()
         {
+            List<SampleRecord> _sampleRecords = new List<SampleRecord>();
             string line;
-            int n = 0, j = 0;
+            int n = 0;
             bool passedDataHeader = false;
-            string[] fields;
-            SampleRecord tempRecord;
-            Dictionary<string, int> ColumnHeaders = new Dictionary<string, int>(); //Header:Column_Number
-            Regex dataRgx = new Regex(@"Data");
+            // Header : Column_Number to look up the required column
+            Dictionary<string, int> ColumnHeaders = new Dictionary<string, int>(); 
 
             // Open the SampleSheet for reading
-            using (FileStream stream = new FileStream(sampleSheetPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            // Separate FileStream and StreamReader usings are needed to ensure that we can open
+            // files that are open elsewhere - this has caused problems in the past
+            using (FileStream stream = new FileStream(parameters.SampleSheetPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
                 using (StreamReader SampleSheet = new StreamReader(stream))
                 {
                     //Continue to read until you reach end of file
                     while ((line = SampleSheet.ReadLine()) != null)
                     {
-                        //skip empty and comma lines
-                        if (line == "" || CommaOnlyLine(line) == true)
+                        if (BlankLine(line))
                         {
                             continue;
                         }
-
-                        //skip lines before [Data]
+                        // Skip lines before [Data] by matching the following regex pattern
+                        // I think this avoid any problems with trailing commas that just a straight
+                        // string match might encounter
+                        Regex dataRgx = new Regex(@"Data");
                         if (dataRgx.IsMatch(line) && passedDataHeader == false)
                         {
                             passedDataHeader = true;
                             continue;
                         }
 
-                        //on sample section
+                        // On sample section
                         if (passedDataHeader == true)
                         {
-                            //on Sample_ID header
+                            // After the section header, the first row (n == 0) is the column header row
+                            // So first those need to be read
                             if (n == 0)
                             {
-                                n = 1; //passed Sample_ID header
-                                fields = line.Split(',');
-
-                                foreach (string field in fields)
+                                // This gives and index for the foreach, which doesn't exist by default
+                                // This is then stored as <column name>:<index> so that we can look up the index
+                                // of a given column later. While not *strictly* needed, this does allow us to
+                                // account for SampleSheets with different ordering or numbers of columns
+                                // Lifted from https://stackoverflow.com/questions/521687/foreach-with-index
+                                foreach (var field in line.Split(',').Select((x, i) => new { Value = x, Index = i }))
                                 {
-                                    ColumnHeaders.Add(field, j);
-                                    j++; //0-based index
+                                    ColumnHeaders.Add(field.Value, field.Index);
                                 }
-
-                                continue;
-                            }
-
-                            //on sample info. split CSV fields
-                            fields = line.Split(',');
-
-                            tempRecord.Sample_ID = fields[ColumnHeaders[@"Sample_ID"]];
-                            tempRecord.Sample_Name = fields[ColumnHeaders[@"Sample_Name"]];
-                            tempRecord.Sample_No = n;
-
-                            //get analysis type
-                            if (ColumnHeaders.ContainsKey(@"Analysis"))
-                            {
-                                tempRecord.Analysis = fields[ColumnHeaders[@"Analysis"]];
+                                //continue;
                             }
                             else
                             {
-                                tempRecord.Analysis = "";
-                            }
+                                //on sample info. split CSV fields
+                                string [] fields = line.Split(',');
 
-                            //Add to list
-                            sampleRecords.Add(tempRecord);
-
+                                // Store the sample details in a SampleRecord
+                                // NOTE: Analysis field is assigned using `condition ? consequent : alternative` operators
+                                //       If there is an "Analysis" key present, assign that value or an empty string if not
+                                // DEV: There must be more "correct" way of doing this, or at least better than having an empty string?
+                                //      Maybe just use "null"?
+                                SampleRecord tempRecord = new SampleRecord(sampleid: fields[ColumnHeaders[@"Sample_ID"]],
+                                                                           samplename: fields[ColumnHeaders[@"Sample_Name"]],
+                                                                           samplenumber: n,
+                                                                           analysis: ColumnHeaders.ContainsKey(@"Analysis") ? fields[ColumnHeaders[@"Analysis"]] : "");
+                                _sampleRecords.Add(tempRecord);
+                            }                           
+                            // Increment the sample counter - we can't do a for loop here as we don't know in advance
+                            // how many samples there are. That could be a possible update but would require reading through
+                            // the SampleSheet beforehand to find out. Which isn't exactly terrible given how long it is, but it
+                            // *is* a little unecessary. Although it might make comprehension clearer here.
                             n++;
                         }
                     }
                 }
             }
+            return _sampleRecords;
         }
 
-        private static bool CommaOnlyLine(string SampleSheetLine)
+        /// <summary>
+        /// Checks if a given line is empty or consists only of commas
+        /// i.e. it is an empty csv line
+        /// </summary>
+        /// <param name="SampleSheetLine">Text line to check</param>
+        /// <returns>true if the line is blank, false if any characters other than comma are found</returns>
+        private static bool BlankLine(string SampleSheetLine)
         {
-
-            foreach (char c in SampleSheetLine){
-                
+            // Check each character to see if there are
+            // non-comma values. If so, line is NOT blank so return false.
+            // There is no need to separately check a blank line, as that has
+            // no characters, and so skips the foreach and returns true.
+            foreach (char c in SampleSheetLine)
+            {
                 if (c != ',')
                 {
                     return false;
                 }
-
-            }
-            
+            }            
             return true;
         }
 
-        private void GetExperimentName()
+        /// <summary>
+        /// Reads a specified header field from the SampleSheet
+        /// </summary>
+        /// <param name="field">Name of field to find</param>
+        /// <returns>Value of the specified field from the SampleSheet</returns>
+        private dynamic GetSampleSheetField(string field)
         {
             string line;
-            string[] fields;
-            Regex experimentNameRgx = new Regex(@"^Experiment Name");
+            dynamic temp;
 
             //Pass the file path and file name to the StreamReader constructor
-            using (FileStream stream = new FileStream(sampleSheetPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (FileStream stream = new FileStream(parameters.SampleSheetPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
                 using (StreamReader SampleSheet = new StreamReader(stream))
                 {
                     //Continue to read until you reach end of file
                     while ((line = SampleSheet.ReadLine()) != null)
                     {
-                        //skip empty and comma lines
-                        if (line == "" || CommaOnlyLine(line) == true)
+                        temp = GetSingleLineField(line, field);
+                        if (temp != null) { return temp;  }
+                        else
                         {
-                            continue;
+                            temp = GetAnalysisFields(line, field, SampleSheet);
+                            if (temp != null) { return temp; }
                         }
-
-                        if (experimentNameRgx.IsMatch(line))
+                    }
+                }
+            }
+            // If nothing matches, we will get to here so return the default "Unspecified" value
+            return @"Unspecified";
+        }
+       
+        /// <summary>
+        /// Returns the value of the key:value pair matching field, if one exists 
+        /// </summary>
+        /// <param name="line">Text line to check for a match</param>
+        /// <param name="field">Key string to look for</param>
+        /// <returns>Value of key:value pair if field is found, or null if it is not</returns>
+        private string GetSingleLineField(string line, string field)
+        {
+            // Add the string "^" to ensure that the regex matches only at the start of a line
+            Regex FieldNameRgx = new Regex(@"^" + field);
+            if (FieldNameRgx.IsMatch(line))
+            {
+                // Split the CSV line into a list -  this is <key>,<value> so
+                // we want to return the second item
+                string[] fields = line.Split(',');
+                if (fields.Length > 0)
+                {
+                    return fields[1];
+                }
+            }
+            return null;
+        }
+        
+        /// <summary>
+        /// Returns all values found under the [Analysis] (or other field) section in SampleSheet.csv
+        /// As this is intended for the Analysis section only, it returns the first two values in each
+        /// line, as a dictionary that would represent Panel:Reference
+        /// </summary>
+        /// <param name="line">Currrent line in SampleSheet</param>
+        /// <param name="field">key [header] string to look for</param>
+        /// <param name="SampleSheet">Open StreamReader of the target SampleSheet</param>
+        /// <returns>List of values found under heading field, or null if nothing is found</returns>
+        private Dictionary<string, string> GetAnalysisFields(string line, string field, StreamReader SampleSheet)
+        {
+            Dictionary<string, string> _analyses = new Dictionary<string, string>();
+            // NOTE: the square brackets need to be escaped in a Regex!
+            Regex HeadingNameRgx = new Regex(@"^\[" + field + @"\]");
+            Regex NextHeadingRgz = new Regex(@"^\[");
+            if (HeadingNameRgx.IsMatch(line))
+            {
+                // Heading found, read all following lines
+                while ((line = SampleSheet.ReadLine()) != null)
+                {
+                    // Ignore blanks
+                    if (!BlankLine(line))
+                    {
+                        // Break if we hit the next heading (e.g. a line starting with "[")
+                        if (NextHeadingRgz.IsMatch(line))
                         {
-                            fields = line.Split(',');
-
-                            if (fields.Length > 0)
-                            {
-                                experimentName = fields[1];
-                            }
-                            else
-                            {
-                                experimentName = @"Unspecified";
-                            }
-
                             break;
                         }
-
-                    }
-                }
-            }
-        }
-
-        private void GetInvestigatorName()
-        {
-            string line;
-            string[] fields;
-            Regex investigatorNameRgx = new Regex(@"^Investigator Name");
-
-            //Pass the file path and file name to the StreamReader constructor
-            using (FileStream stream = new FileStream(sampleSheetPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-            {
-                using (StreamReader SampleSheet = new StreamReader(stream))
-                {
-                    //Continue to read until you reach end of file
-                    while ((line = SampleSheet.ReadLine()) != null)
-                    {
-                        //skip empty and comma lines
-                        if (line == "" || CommaOnlyLine(line) == true)
+                        else
                         {
-                            continue;
-                        }
-
-                        if (investigatorNameRgx.IsMatch(line))
-                        {
-                            fields = line.Split(',');
-
-                            if (fields.Length > 0)
+                            string[] fields = line.Split(',');
+                            // Error encoutered in testing - tried to load multiple instances of the same panel
+                            // This should never happen in real life, but just in case use a try/catch to deal with it.
+                            try
                             {
-                                investigatorName = fields[1];
+                                _analyses.Add(fields[0], fields[1]);
                             }
-                            else
+                            catch (System.ArgumentException)
                             {
-                                investigatorName = @"Unspecified";
+                                AuxillaryFunctions.WriteLog("Only one instance of a given panel may exist in a single SampleSheet", parameters.LocalLogFilename, -1, false, parameters);
+                                throw;
                             }
-
-                            break;
                         }
                     }
                 }
+                return _analyses;
             }
+            return null;
         }
-
-        private void GetAnalyses()
-        {
-            bool passedManifestHeader = false;
-            string line;
-            string[] fields;
-            Regex manifestRgx = new Regex(@"Analysis");
-
-            //Pass the file path and file name to the StreamReader constructor
-            using (FileStream stream = new FileStream(sampleSheetPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-            {
-                using (StreamReader SampleSheet = new StreamReader(stream))
-                {
-                    //Continue to read until you reach end of file
-                    while ((line = SampleSheet.ReadLine()) != null)
-                    {
-                        //skip empty and comma lines
-                        if (line == "" || CommaOnlyLine(line) == true)
-                        {
-                            continue;
-                        }
-
-                        if (manifestRgx.IsMatch(line) && passedManifestHeader == false)
-                        {
-                            passedManifestHeader = true;
-                            continue;
-                        }
-
-                        if (passedManifestHeader == true){
-
-                            if (line.Substring(0, 1) == "["){
-                                break;
-                            }
-
-                            fields = line.Split(',');
-
-                            if (fields.Length > 1){
-                                analyses.Add(fields[0], fields[1]); //analysis type P/G,<ROIfile>
-                            }
-                        }
-
-                    }
-                }
-            }
-        }
-
-        public string getInvestigatorName { get { return investigatorName; } }
-        public string getExperimentName { get { return experimentName; } }
-        public List<SampleRecord> getSampleRecords { get { return sampleRecords; } }
-        public Dictionary<string, string> getAnalyses { get { return analyses; } }
     }
 }

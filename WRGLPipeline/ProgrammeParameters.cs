@@ -1,189 +1,262 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.IO;
 using System.Security;
+using Microsoft.Extensions.Configuration;
 
 namespace WRGLPipeline
 {
+    /// <summary>
+    /// Stores the parameters required for pipeline running.
+    /// Loads in the settings from the WRGLPipeline.ini file, as well
+    /// as checking for command line options.
+    /// </summary>
     class ProgrammeParameters
     {
-        //[PanelAnalysis]
-        private string coreBedFile; //'Core' regions that must be covered
-        private string sotonUserName;
-        private string SSHHostKey; //SSH fingerprint; ensures connection to expected server
-        private string iridisHostKey; //SSH fingerprint; ensures connection to expected server
-        private string panelScriptsDir;
-        private string interpretationsFile;
-        private string panelRepo;
-        private bool getData = false; //if we want to run GetData only or a full UploadAndExecute analysis. Set false by default.
+        // NOTE: the { get; private set; } syntax isn't *quite* as secure as using
+        //       a private readonly variable and a public getter, but it's simpler and
+        //       more than robust enough for our purposes.
+        //       This method means we only need to add a single line to define the 
+        //       variable and the getter, with another line to set the value in the
+        //       constructor.
+        //       Future C# versions are introducing a { get; init; } style, which will
+        //       enforce the immutability more by *only* allowing the value to be set
+        //       by a constructor.
 
-        //[GenotypingAnalysis]
-        private string b37FilePath;
-        private string b37FastaPath;
-        private string knownIndels1Path; //1000g
-        private string knownIndels2Path; //Mils
-        private string knownIndels3Path; //cosmic
-        private string gatkKeyPath;
-        private string genotypingRepo;
+        // [PanelAnalysis]
+        public string CoreBedFile { get; private set; }
+        public string SotonUserName { get; private set; }
+        public string SSHHostKey { get; private set; }
+        public string IridisHostKey { get; private set; }
+        public string PanelScriptsDir { get; private set; }
+        public string InterpretationsFile { get; private set; }
+        public string PanelRepo { get; private set; }
+        public bool GetData { get; private set; } = false; //if we want to run GetData only or a full UploadAndExecute analysis. Set false by default.
 
-        //[ProgrammePaths]
-        private string ampliconAlignerPath;
-        private string javaPath;
-        private string somaticVariantCallerPath;
-        private string gatkPath;
-        private string snpEffPath;
-        private string samtoolsPath;
+        // [GenotypingAnalysis]
+        public string GenotypingReferenceFolderPath { get; private set; }
+        public string GenotypingReferenceFastaPath { get; private set; }
+        public string KnownIndels1Path { get; private set; } // 1000 Genomes indels file
+        public string KnownIndels2Path { get; private set; } // Mills and Gold indels file
+        public string KnownIndels3Path { get; private set; } // COSMIC indels file
+        public string GatkKeyPath { get; private set; }
+        public string GenotypingRepo { get; private set; } // Location to store genotyping results
+        public int GenotypingMaxThreads { get; private set; }
+        public int GeminiMultiThreads { get; private set; }
+
+        // [MyeloidAnalysis]
+        public string MyeloidCoverageTool { get; private set; }
+
+        // [ProgrammePaths]
+        public string AmpliconAlignerPath { get; private set; }
+        public string JavaPath { get; private set; }
+        public string SomaticVariantCallerPath { get; private set; }
+        public string GatkPath { get; private set; }
+        public string SnpEffPath { get; private set; }
+        public string SamtoolsPath { get; private set; }
+        public string GeminiPath { get; private set; }
+        public string GeminiMultiPath { get; private set; }
+        public string PiscesPath { get; private set; }
 
         //[CommonParameters]
-        private string preferredTranscriptsPath;
-        private string preferredTranscriptsFile; //ENST list of transcripts
-        
+        public string PreferredTranscriptsPath { get; private set; }
+        public string PreferredTranscriptsFile { get; private set; }
+        public string NetworkDirectory { get; private set; }
+
         //[AnalysisParameters]
-        private int GenotypingDepth;
-        private int GenotypingQual;
-        private int PanelsDepth;
-        private int ExomeDepth;
+        public int GenotypingDepth { get; private set; }
+        public int GenotypingQual { get; private set; }
+        public int PanelsDepth { get; private set; }
+        public int ExomeDepth { get; private set; }
 
         //[FileManagement]
-        private bool deleteOldestLocalRun;
+        public bool DeleteOldestLocalRun { get; private set; }
 
         //[Notifications]
-        private string WRGLLogoPath;
-        private string adminEmailAddress;
-        private List<string> emailRecipients = new List<string>();
+        readonly private List<string> EmailRecipients = new List<string>();
+        public string WRGLLogoPath { get; private set; }
+        public string AdminEmailAddress { get; private set; }
+        public List<string> GetEmailRecipients { get { return EmailRecipients; } }
 
-        //passwords
-        private SecureString sotonPassWord = new SecureString();
-        private SecureString NHSMailPassword = new SecureString();
+        //[Development]
+        public bool CopyToNetwork { get; private set; } = true;
+        public bool GenotypingUseGemini { get; private set; }
+        public bool GenotypingUsePisces { get; private set; }
 
-        private Dictionary<string, string> parameters = new Dictionary<string, string>();
-        private static byte[] entropy = System.Text.Encoding.Unicode.GetBytes(@"7ftw43hgh0u9hn6d:^77jg$chjch)");
+        // Passwords are (obviously!) not stored in the ini file
+        public SecureString SotonPassword { get; private set; }
+        public SecureString NHSMailPassword { get; private set; }
 
-        public ProgrammeParameters()
+        // Added parameters that were previously defined in programme.cs and passed explicity to all other classes.
+        // Makes more sense that they should be in here, so that only the parameters object needs to be passed.
+        public string SuppliedDir { get; private set; }
+        public string LocalFastqDir { get; private set; }
+        public string SampleSheetPath { get; private set; }
+        public string LocalRootRunDir { get; private set; }
+        public string LocalMiSeqAnalysisDir { get; private set; }
+        public string RunID { get; private set; }
+        public string NetworkRootRunDir { get; set; }
+        public string LocalLogFilename { get; private set; }
+
+        /// <summary>
+        /// Read settings and parameters from .ini config file and command line arguments.
+        /// Settings are the accessible through the properties of a ProgrammeParameters object.
+        /// </summary>
+        /// <param name="args">Cmd line arguments passed from the main function</param>
+        public ProgrammeParameters(string[] args)
         {
-            StreamReader inputFile = new StreamReader(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location) + @"\WRGLPipeline.ini");
-            string line;
+            // Read the config ini using the Microsoft.Extension.Configuration.Ini nuget module
 
-            while ((line = inputFile.ReadLine()) != null)
-            {
-                if (line != @"" && line.Substring(0, 1) != @"[")
-                {
-                    string[] fields = line.Split('=');
+            // We need the path to the directory containing the current executable
+            string exelocation = AppDomain.CurrentDomain.BaseDirectory;
+            //if (Directory.Exists(exelocation + @"\bin"))
+            //{
+            //    exelocation += @"\bin";
+            //}
+            var config = new ConfigurationBuilder()
+                .SetBasePath(exelocation)
+                .AddIniFile("WRGLPipeline.ini", optional: false)
+                .Build();
 
-                    if (fields.Length != 2)
-                    {
-                        throw new FileLoadException(@"Line: " + line + @" is malformed");
-                    }
+            // Populate parameters from ini (NOTE: access with <section>:<key> string)
 
-                    if (string.Compare(@"EmailRecipients", fields[0], true) == 0) //match
-                    {
-                        emailRecipients.Add(fields[1]);
-                    }
-                    else
-                    {
-                        parameters.Add(fields[0], fields[1]);
-                    }
+            // [PanelAnalysis]
+            CoreBedFile = config["PanelAnalysis:CoreFile"];
+            SotonUserName = config["PanelAnalysis:Username"];
+            SSHHostKey = config["PanelAnalysis:SSHHostKey"];
+            IridisHostKey = config["PanelAnalysis:IridisHostKey"];
+            PanelScriptsDir = config["PanelAnalysis:PanelScriptsDir"];
+            PanelRepo = config["PanelAnalysis:PanelRepository"];
 
-                }
+            // [GenotypingAnalysis]
+            GenotypingReferenceFolderPath = config["GenotypingAnalysis:b37Folder"];
+            GenotypingReferenceFastaPath = config["GenotypingAnalysis:b37Fasta"];
+            KnownIndels1Path = config["GenotypingAnalysis:knownIndels1VCF"];
+            KnownIndels2Path = config["GenotypingAnalysis:knownIndels2VCF"];
+            KnownIndels3Path = config["GenotypingAnalysis:knownIndels3VCF"];
+            GatkKeyPath = config["GenotypingAnalysis:GatkKey"];
+            GenotypingRepo = config["GenotypingAnalysis:GenotypingRepository"];
+            GenotypingMaxThreads = Int32.Parse(config["GenotypingAnalysis:GenotypingMaxThreads"]);
+            GeminiMultiThreads = Int32.Parse(config["GenotypingAnalysis:GeminiMultiThreads"]);
 
-            }
+            // [MyeloidAnalysis]
+            MyeloidCoverageTool = config["MyeloidAnalysis:MyeloidCoverageTool"];
 
-            inputFile.Close();
+            // [ProgrammePaths]
+            AmpliconAlignerPath = config["ProgrammePaths:AmpliconAligner"];
+            JavaPath = config["ProgrammePaths:Java"];
+            SomaticVariantCallerPath = config["ProgrammePaths:SomaticVariantCaller"];
+            GatkPath = config["ProgrammePaths:Gatk"];
+            SnpEffPath = config["ProgrammePaths:SnpEff"];
+            SamtoolsPath = config["ProgrammePaths:Samtools"];
+            GeminiPath = config["ProgrammePaths:Gemini"];
+            GeminiMultiPath = config["ProgrammePaths:GeminiMulti"];
+            PiscesPath = config["ProgrammePaths:Pisces"];
 
-            //populate parameters
-            coreBedFile = parameters[@"CoreFile"];
-            sotonUserName = parameters[@"Username"];
-            SSHHostKey = parameters[@"SSHHostKey"];
-            iridisHostKey = parameters[@"IridisHostKey"];
-            panelScriptsDir = parameters[@"PanelScriptsDir"];
-            panelRepo = parameters[@"PanelRepository"];
+            // [CommonParameters]
+            PreferredTranscriptsPath = config["CommonParameters:PreferredTranscripts"];
+            PreferredTranscriptsFile = Path.GetFileName(PreferredTranscriptsPath);
+            InterpretationsFile = config["CommonParameters:Interpretations"];
+            NetworkDirectory = config["CommonParameters:NetworkDirectory"];
 
-            b37FilePath = parameters[@"b37Folder"];
-            b37FastaPath = parameters[@"b37Fasta"];
-            knownIndels1Path = parameters[@"knownIndels1VCF"];
-            knownIndels2Path = parameters[@"knownIndels2VCF"];
-            knownIndels3Path = parameters[@"knownIndels3VCF"];
-            gatkKeyPath = parameters[@"GatkKey"];
-            genotypingRepo = parameters[@"GenotypingRepository"];
+            // [AnalysisParameters]
+            GenotypingDepth = Int32.Parse(config["AnalysisParameters:GenotypingDepth"]);
+            GenotypingQual = Int32.Parse(config["AnalysisParameters:GenotypingQual"]);
+            PanelsDepth = Int32.Parse(config["AnalysisParameters:PanelsDepth"]);
+            ExomeDepth = Int32.Parse(config["AnalysisParameters:ExomeDepth"]);
 
-            ampliconAlignerPath = parameters[@"AmpliconAligner"];
-            javaPath = parameters[@"Java"];
-            somaticVariantCallerPath = parameters[@"SomaticVariantCaller"];
-            gatkPath = parameters[@"gatk"];
-            snpEffPath = parameters[@"snpEff"];
-            samtoolsPath = parameters[@"samtools"];
+            // [FileManagement]
+            DeleteOldestLocalRun = Convert.ToBoolean(config["FileManagement:DeleteOldestLocalRun"]);
 
-            GenotypingDepth = int.Parse(parameters[@"GenotypingDepth"]);
-            GenotypingQual = int.Parse(parameters[@"GenotypingQual"]);
-            PanelsDepth = int.Parse(parameters[@"PanelsDepth"]);
-            ExomeDepth = int.Parse(parameters[@"ExomeDepth"]);
+            // [Notifications]
+            WRGLLogoPath = config["Notifications:WRGLLogoPath"];
+            AdminEmailAddress = config["Notifications:AdminEmailAddress"];
+            EmailRecipients = config["Notifications:EmailRecipients"].Split(',').ToList();
 
-            preferredTranscriptsPath = parameters[@"PreferredTranscripts"];
-            preferredTranscriptsFile = Path.GetFileName(preferredTranscriptsPath);
-            interpretationsFile = parameters[@"Interpretations"];
+            // Development
+            GenotypingUseGemini = Convert.ToBoolean(config["Development:GenotypingUseGemini"]);
+            GenotypingUsePisces = Convert.ToBoolean(config["Development:GenotypingUsePisces"]);
 
-            deleteOldestLocalRun = Convert.ToBoolean(parameters[@"DeleteOldestLocalRun"]);
+            // Read the command line options (Options details are set in the ParseArgs class)
+            var parser = new ParseArgs(args);
+            SuppliedDir = parser.Path;
+            GetData = parser.GetData;
+            CopyToNetwork = parser.CopyToNetwork;
 
-            WRGLLogoPath = parameters[@"WRGLLogoPath"];
-            adminEmailAddress = parameters[@"AdminEmailAddress"];
+            // Load the remaining parameters derived from the suppliedDir argument
+            LocalFastqDir = AuxillaryFunctions.GetFastqDir(SuppliedDir);
+            SampleSheetPath = SuppliedDir + @"\SampleSheetUsed.csv";
+            LocalRootRunDir = AuxillaryFunctions.GetRootRunDir(SuppliedDir);
+            LocalMiSeqAnalysisDir = AuxillaryFunctions.GetLocalAnalysisFolderDir(SuppliedDir);
+            RunID = AuxillaryFunctions.GetRunID(SuppliedDir);
+            NetworkRootRunDir = NetworkDirectory + @"\" + RunID;
+            LocalLogFilename = LocalRootRunDir + @"\WRGLPipeline.log";
 
+            // Get the directory in which the executable file is present when run
+            // i.e. the full path to the \bin folder
+            string keyfolder = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location) + @"\keys";
 
-            //check for installed password: soton
-            if (File.Exists(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location) + @"\soton.key"))
-            {
-                //read output to string
-                using (StreamReader r = new StreamReader(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location) + @"\soton.key"))
-                {
-                    sotonPassWord = DecryptString(r.ReadToEnd());// return securestring
-                }
-            }
-            else
-            {
-                Console.WriteLine(@"Enter admin soton password");
-                string encryptedData = EncryptString(GetPassword());
-
-                using (StreamWriter w = new StreamWriter(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location) + @"\soton.key")){
-                    w.Write(encryptedData); //write encrypted password
-                }
-
-                sotonPassWord = DecryptString(encryptedData);
-            }
-            
-            //check for installed password: nhsmail
-            if (File.Exists(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location) + @"\nhs.key"))
-            {
-                //read output to string
-                using (StreamReader r = new StreamReader(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location) + @"\nhs.key"))
-                {
-                    NHSMailPassword = DecryptString(r.ReadToEnd());// return securestring
-                }
-            }
-            else
-            {
-                Console.WriteLine(@"Enter admin NHSMail password");
-                string encryptedData = EncryptString(GetPassword());
-
-                using (StreamWriter w = new StreamWriter(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location) + @"\nhs.key"))
-                {
-                    w.Write(encryptedData); //write encrypted password
-                }
-
-                NHSMailPassword = DecryptString(encryptedData);
-            }
+            // Load passwords from key files, or prompt from the user
+            SotonPassword = ReadPasswordOrPrompt(keyfolder + @"\soton.key", "Enter Soton admin password:");
+            NHSMailPassword = ReadPasswordOrPrompt(keyfolder + @"\nhs.key", "Enter NHS mail password:");
         }
 
-        private static SecureString GetPassword() //reads password from console and stores in secure string
+        /// <summary>
+        /// Reads a securestring password from a key file, or prompts the user to enter the password if missing.
+        /// Saves user input as new key file in the specified location.
+        /// </summary>
+        /// <param name="keypath">Path to the expected key file</param>
+        /// <param name="prompt">Prompt to display if file not found</param>
+        /// <returns>SecureString password from file or user prompt.</returns>
+        private static SecureString ReadPasswordOrPrompt(string keypath, string prompt)
+        {
+            SecureString Password = new SecureString();
+
+            if (File.Exists(keypath))
+            {
+                //read output to string
+                using (StreamReader r = new StreamReader(keypath))
+                {
+                    Password = DecryptString(r.ReadToEnd());
+                }
+            }
+            else
+            {
+                Console.WriteLine(prompt);
+                string encryptedData = EncryptString(GetPassword());
+
+                using (StreamWriter w = new StreamWriter(keypath))
+                {
+                    w.Write(encryptedData); //write encrypted password
+                }
+
+                Password = DecryptString(encryptedData);
+            }
+            return Password;
+        }
+
+        /// <summary>
+        /// Read a password entered by the user at the console and store as a SecureString
+        /// DEV: There must be a more efficient way to get a password? Writing all this to handle
+        ///      blanking out user input seems unecessary...
+        /// </summary>
+        /// <returns>Unencrypted SecureString of user password input from console</returns>
+        private static SecureString GetPassword()
         {
             SecureString pword = new SecureString();
 
             while (true)
             {
+                // Read user keypress
                 ConsoleKeyInfo i = Console.ReadKey(true);
+                // If "Enter" then return the entered string
                 if (i.Key == ConsoleKey.Enter)
                 {
                     Console.WriteLine();
                     return pword;
                 }
+                // This allows the user to delete previous characters
                 else if (i.Key == ConsoleKey.Backspace)
                 {
                     if (pword.Length > 0)
@@ -192,6 +265,7 @@ namespace WRGLPipeline
                         Console.Write("\b \b");
                     }
                 }
+                // For any other input, append this character to the SecureString.
                 else
                 {
                     pword.AppendChar(i.KeyChar);
@@ -200,23 +274,46 @@ namespace WRGLPipeline
             }
         }
 
+        // DEV: While I'm sure this is good enough for our needs, there must be a more
+        //      crypotgraphically secure way of doing this than literally hard-coding?
+        /// <summary>
+        /// Entropy variable used by the EncryptString and DecryptString functions
+        /// </summary>
+        readonly private static byte[] entropy = System.Text.Encoding.Unicode.GetBytes(@"7ftw43hgh0u9hn6d:^77jg$chjch)");
+
+        /// <summary>
+        /// Encrypt a SecureString
+        /// </summary>
+        /// <param name="input">String to be encrypted</param>
+        /// <returns>Encrypted SecureString representation of input</returns>
         private static string EncryptString(System.Security.SecureString input)
         {
             byte[] encryptedData = System.Security.Cryptography.ProtectedData.Protect(
                 System.Text.Encoding.Unicode.GetBytes(ToInsecureString(input)),
                 entropy,
-                System.Security.Cryptography.DataProtectionScope.CurrentUser);
+                System.Security.Cryptography.DataProtectionScope.LocalMachine);
             return Convert.ToBase64String(encryptedData);
         }
 
-        private static SecureString DecryptString(string encryptedData)
+        /// <summary>
+        /// Decrypt a SecureString
+        /// </summary>
+        /// <param name="input">Encrypted string to decrypt</param>
+        /// <returns>Decrypted SecureString representation of input</returns>
+        /// <remarks>
+        /// It's not clear to me why Matt wrapped this in a try/catch, unless perhaps
+        /// he'd encountered some kind of problems while testing? The key file should
+        /// only be a valid encrypted SecureString.
+        /// </remarks>
+        private static SecureString DecryptString(string input)
         {
+            // 
             try
             {
                 byte[] decryptedData = System.Security.Cryptography.ProtectedData.Unprotect(
-                    Convert.FromBase64String(encryptedData),
+                    Convert.FromBase64String(input),
                     entropy,
-                    System.Security.Cryptography.DataProtectionScope.CurrentUser);
+                    System.Security.Cryptography.DataProtectionScope.LocalMachine);
                 return ToSecureString(System.Text.Encoding.Unicode.GetString(decryptedData));
             }
             catch (Exception ex)
@@ -226,6 +323,16 @@ namespace WRGLPipeline
             }
         }
 
+        /// <summary>
+        /// Converts a string to SecureString.
+        /// </summary>
+        /// <param name="input">String to convert</param>
+        /// <returns>SecureString representation of input</returns>
+        /// <remarks>
+        /// Used by DecryptString when reading a key file, as the decryption
+        /// of the base 64 key returns a string. Although this isn't re-used it
+        /// is much clearer as a separate function.
+        /// </remarks>
         private static SecureString ToSecureString(string input)
         {
             SecureString secure = new SecureString();
@@ -238,6 +345,11 @@ namespace WRGLPipeline
             return secure;
         }
 
+        /// <summary>
+        /// Converts a SecureString to a string
+        /// </summary>
+        /// <param name="input">SecureString to convert</param>
+        /// <returns>String representation of input</returns>
         public static string ToInsecureString(SecureString input)
         {
             string returnValue = string.Empty;
@@ -252,40 +364,5 @@ namespace WRGLPipeline
             }
             return returnValue;
         }
-
-        public string getCoreBedFile { get { return coreBedFile; } }
-        public string getSotonUserName { get { return sotonUserName; } }
-        public string getSSHHostKey { get { return SSHHostKey; } }
-        public string getIridisHostKey { get { return iridisHostKey; } }
-        public string getPanelScriptsDir { get { return panelScriptsDir; } }
-        public string getb37FilePath { get { return b37FilePath; } }
-        public string getb37FastaPath { get { return b37FastaPath; } }
-        public string getKnownIndels1Path { get { return knownIndels1Path; } }
-        public string getKnownIndels2Path { get { return knownIndels2Path; } }
-        public string getKnownIndels3Path { get { return knownIndels3Path; } }
-        public string getGatkKeyPath { get { return gatkKeyPath; } }
-        public string getAmpliconAlignerPath { get { return ampliconAlignerPath; } }
-        public string getJavaPath { get { return javaPath; } }
-        public string getSomaticVariantCallerPath { get { return somaticVariantCallerPath; } }
-        public string getGatkPath { get { return gatkPath; } }
-        public string getSnpEffPath { get { return snpEffPath; } }
-        public string getSamtoolsPath { get { return samtoolsPath; } }
-        public int getGenotypingDepth { get { return GenotypingDepth; } }
-        public int getGenotypingQual { get { return GenotypingQual; } }
-        public int getPanelsDepth { get { return PanelsDepth; } }
-        public int getExomeDepth { get { return ExomeDepth; } }
-        public string getPreferredTranscriptsPath { get { return preferredTranscriptsPath; } }
-        public string getPreferredTranscriptsFile { get { return preferredTranscriptsFile; } }
-        public string getInterpretationsFile { get { return interpretationsFile; } }
-        public bool getDeleteOldestLocalRun { get { return deleteOldestLocalRun; } }
-        public string getAdminEmailAddress { get { return adminEmailAddress; } }
-        public string getWRGLLogoPath { get { return WRGLLogoPath; } }
-        public List<string> getEmailRecipients { get { return emailRecipients; } }
-        public SecureString getSotonPassWord { get { return sotonPassWord; } }
-        public SecureString getNHSMailPassword { get { return NHSMailPassword; } }
-        public string getPanelRepo { get { return panelRepo; } }
-        public string getGenotypingRepo { get { return genotypingRepo; } }
-        public bool getGetData { get { return getData; } }
-        public bool setGetData { set {getData = value; } } //unlike all the others, we want to set GetData from within the program, not from the parameters
     }
 }
