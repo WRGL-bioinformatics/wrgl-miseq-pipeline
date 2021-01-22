@@ -3,6 +3,12 @@
 C# pipeline that runs on MiSeq completion and manages data through either panels
 or genotyping pipelines.
 
+## Version 2.2.4
+
+### Change summary
+ * MINOR CHANGE: Added --skipCopyToNetwork flag to align with interface changes and speed up testing runs
+ * MINOR CHANGE: Corrected some issues that were affecting automatic running by MiSeq Reporter.
+
 ## Version 2.2.3
 
 ### Change summary
