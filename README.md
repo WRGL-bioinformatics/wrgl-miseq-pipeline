@@ -3,6 +3,10 @@
 C# pipeline that runs on MiSeq completion and manages data through either panels
 or genotyping pipelines.
 
+### Patch 2021-05-27
+
+ * To address crashing caused by failed samples following Pisces updates.
+
 ### Bam-Download updated
 
  * Now transfers all BAM files (panels, genotyping, and myeloid) into a local temporary file store for ease of access by scientists with IGV
