@@ -1,4 +1,4 @@
-using System;
+ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
@@ -33,6 +33,7 @@ namespace WRGLPipeline
         public string InterpretationsFile { get; private set; }
         public string PanelRepo { get; private set; }
         public bool GetData { get; private set; } = false; //if we want to run GetData only or a full UploadAndExecute analysis. Set false by default.
+        public bool BamDownload { get; private set; } = true;
 
         // [GenotypingAnalysis]
         public string GenotypingReferenceFolderPath { get; private set; }
@@ -63,6 +64,7 @@ namespace WRGLPipeline
         public string PreferredTranscriptsPath { get; private set; }
         public string PreferredTranscriptsFile { get; private set; }
         public string NetworkDirectory { get; private set; }
+        public string BamStoreLocation { get; private set; }
 
         //[AnalysisParameters]
         public int GenotypingDepth { get; private set; }
@@ -99,6 +101,10 @@ namespace WRGLPipeline
         public string NetworkRootRunDir { get; set; }
         public string LocalLogFilename { get; private set; }
 
+        public ProgrammeParameters()
+        {
+            // Empty constructor so we can initialise, but then try/catch for any errors
+        }
         /// <summary>
         /// Read settings and parameters from .ini config file and command line arguments.
         /// Settings are the accessible through the properties of a ProgrammeParameters object.
@@ -159,6 +165,7 @@ namespace WRGLPipeline
             PreferredTranscriptsFile = Path.GetFileName(PreferredTranscriptsPath);
             InterpretationsFile = config["CommonParameters:Interpretations"];
             NetworkDirectory = config["CommonParameters:NetworkDirectory"];
+            BamStoreLocation = config["CommonParameters:BamStoreLocation"];
 
             // [AnalysisParameters]
             GenotypingDepth = Int32.Parse(config["AnalysisParameters:GenotypingDepth"]);
@@ -182,6 +189,7 @@ namespace WRGLPipeline
             var parser = new ParseArgs(args);
             SuppliedDir = parser.Path;
             GetData = parser.GetData;
+            BamDownload = parser.BamDownload;
             CopyToNetwork = parser.CopyToNetwork;
 
             // Load the remaining parameters derived from the suppliedDir argument

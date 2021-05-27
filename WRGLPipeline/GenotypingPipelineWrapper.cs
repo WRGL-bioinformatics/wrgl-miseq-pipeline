@@ -120,6 +120,36 @@ namespace WRGLPipeline
                 foreach (string file in Directory.GetFiles(analysisDir, @"*.txt")) { File.Copy(file, networkAnalysisDir + @"\" + Path.GetFileName(file)); }
                 foreach (string file in Directory.GetFiles(analysisDir, @"*.vcf")) { File.Copy(file, networkAnalysisDir + @"\" + Path.GetFileName(file)); }
             }
+
+            // DEV: test if transferring the BAM files works nicely here
+            if (parameters.BamDownload)
+            {
+                // Create the run folder in the Genotyping BAM store
+                string RunBamStore = $@"{parameters.BamStoreLocation}\Genotyping\{parameters.RunID}";
+
+                // Create the local BAM store folder (from Run ID)
+                try
+                {
+                    System.IO.Directory.CreateDirectory(RunBamStore);
+                }
+                catch
+                {
+                    AuxillaryFunctions.WriteLog(@"Could not create local BAM file store folder", parameters.LocalLogFilename, -1, false, parameters);
+                    throw;
+                }
+
+                foreach (string file in Directory.GetFiles(analysisDir, @"*.bam"))
+                {
+                    AuxillaryFunctions.WriteLog($@"Copy {Path.GetFileName(file)} to {parameters.BamStoreLocation}...", parameters.LocalLogFilename, 0, false, parameters);
+                    File.Copy(file, $@"{RunBamStore}\{Path.GetFileName(file)}");
+                }
+                // TODO: See if we can do BAM and BAI together within the same loop
+                foreach (string file in Directory.GetFiles(analysisDir, @"*.bai"))
+                {
+                    File.Copy(file, $@"{RunBamStore}\{Path.GetFileName(file)}");
+                }
+            }
+            // DEV: Sending emails is currently not working
             //AuxillaryFunctions.SendRunCompletionEmail(logFilename, parameters.getGenotypingRepo + @"\" + Path.GetFileName(reportFilename), sampleSheet, @"Genotyping_" + GenotypingPipelineVerison, runID, parameters);
         }
 
@@ -446,125 +476,5 @@ namespace WRGLPipeline
                 }
             }
         }
-
-        /// <summary>
-        /// This might just be a copy of the same function in the PanelPipelineWrapper file??
-        /// It doesn't seem to be used here
-        /// </summary>
-        //private void AnalyseCoverageData()
-        //{
-        //    AuxillaryFunctions.WriteLog(@"Calculating coverage values...", parameters.LocalLogFilename, 0, false, parameters);
-
-        //   int pos;
-        //    string line, ampliconID;
-        //    List<string> sampleIDs = new List<string>();
-        //    Dictionary<Tuple<string, int>, bool> isBaseCovered = new Dictionary<Tuple<string, int>, bool>(); //bool = observed
-        //    StringBuilder samtoolsDepthParameter = new StringBuilder();
-
-        //    samtoolsDepthParameter.Append(@"depth ");
-        //    samtoolsDepthParameter.Append(@"-q ");
-        //    samtoolsDepthParameter.Append(20);
-        //    samtoolsDepthParameter.Append(' ');
-        //    samtoolsDepthParameter.Append(@"-Q ");
-        //    samtoolsDepthParameter.Append(0);
-        //    samtoolsDepthParameter.Append(' ');
-        //    samtoolsDepthParameter.Append(@"-b ");
-        //    samtoolsDepthParameter.Append(analysisDir + @"\GenotypingRegions.bed");
-        //    samtoolsDepthParameter.Append(' ');
-
-            //loop over sampleIDs
-        //    foreach (SampleRecord record in sampleSheet.SampleRecords)
-        //    {
-        //        if (record.Analysis != "G")
-        //        {
-        //            continue;
-        //        }
-
-        //        samtoolsDepthParameter.Append(analysisDir);
-        //        samtoolsDepthParameter.Append(@"\");
-        //        samtoolsDepthParameter.Append(record.Sample_ID);
-        //        samtoolsDepthParameter.Append(@".bam ");
-
-                //loop over amplicons and initalise dicitonary
-        //        foreach (BEDRecord amplicon in BEDRecords)
-        //        {
-        //            ampliconMinDP.Add(new Tuple<string, string>(record.Sample_ID, amplicon.Name), int.MaxValue); //initalise with maxValue
-        //        }
-
-        //        sampleIDs.Add(record.Sample_ID);
-        //    }
-
-            //loop over target ROI, hash bases
-        //    foreach (BEDRecord record in BEDRecords)
-        //    {
-                //iterate over region
-        //        for (pos = record.Start + 2; pos < record.End + 1; ++pos)
-        //        {
-        //            if (!isBaseCovered.ContainsKey(new Tuple<string, int>(record.Chromosome, pos)))
-        //            {
-        //                isBaseCovered.Add(new Tuple<string, int>(record.Chromosome, pos), false);
-        //            }
-        //        }
-
-        //    }
-
-            //annotated variants
-        //    Process samtoolsDepth = new Process();
-        //    samtoolsDepth.StartInfo.FileName = parameters.SamtoolsPath;
-        //    samtoolsDepth.StartInfo.Arguments = samtoolsDepthParameter.ToString();
-        //    samtoolsDepth.StartInfo.UseShellExecute = false;
-        //    samtoolsDepth.StartInfo.RedirectStandardOutput = true;
-        //    samtoolsDepth.StartInfo.RedirectStandardError = true;
-        //    samtoolsDepth.Start();
-
-        //    string samtoolsDepthOutput = samtoolsDepth.StandardOutput.ReadToEnd();
-
-        //    samtoolsDepth.WaitForExit();
-        //    samtoolsDepth.Close();
-
-        //    using (StringReader reader = new StringReader(samtoolsDepthOutput))
-        //    {
-                // Loop over the lines in the string.
-        //        while ((line = reader.ReadLine()) != null)
-        //        {
-        //            string[] fields = line.Split('\t');
-        //            pos = int.Parse(fields[1]);
-
-                    //mark base as observed in the dataset
-         
-        //           isBaseCovered[new Tuple<string, int>(fields[0], pos)] = true;
-
-        //            for (int n = 2; n < fields.Length; ++n) //skip chrom & pos
-        //            {
-                        //mark amplicon as failed
-        //                ampliconID = AuxillaryFunctions.LookupAmpliconID(new Tuple<string, int>(fields[0], pos), BEDRecords);
-
-        //                if (ampliconID == "")
-        //                {
-        //                    break;  
-        //                }
-                        
-        //                if (ampliconMinDP[new Tuple<string, string>(sampleIDs[n - 2], ampliconID)] > int.Parse(fields[n]))
-        //                {
-        //                    ampliconMinDP[new Tuple<string, string>(sampleIDs[n - 2], ampliconID)] = int.Parse(fields[n]);
-        //                }
-
-        //            }
-        //        }
-        //    }
-
-            //reset max val for missing data
-        //    foreach (KeyValuePair<Tuple<string, int>, bool> chromBase in isBaseCovered){
-        //        if (chromBase.Value == false){ //base not seen in data
-        //            ampliconID = AuxillaryFunctions.LookupAmpliconID(new Tuple<string, int>(chromBase.Key.Item1, chromBase.Key.Item2), BEDRecords);
-
-                    //loop over sampleIDs and reset to 0
-        //            foreach (SampleRecord record in sampleSheet.SampleRecords) {
-        //                ampliconMinDP[new Tuple<string, string>(record.Sample_ID, ampliconID)] = 0;
-        //           }
-
-        //        }
-        //    }
-        //}
     }
 }

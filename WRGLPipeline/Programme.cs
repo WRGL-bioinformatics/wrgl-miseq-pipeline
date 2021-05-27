@@ -25,15 +25,30 @@ namespace WRGLPipeline
                 // Any parameters derived from these values (except for panel/genotyping-specific ones)
                 // are also created by the ProgrammeParameters constructor.
                 // DEV: TODO: Ensure that all variables have appropriate properties
-                Console.WriteLine("DEV: Reading args...");
-                ProgrammeParameters parameters = new ProgrammeParameters(args);
+                ProgrammeParameters parameters = new ProgrammeParameters();
+                try
+                {
+                    parameters = new ProgrammeParameters(args);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("ERROR: An error occurred while reading program arguments and parameters.");
+                    Console.WriteLine(e);
+                    throw;
+                }
 
                 // Parse samplesheet (path defined in parameters)
-                // DEV: For testing purposes it might actually be easier to explicitly pass in the
-                //      samplesheet path?
-                Console.WriteLine("DEV: Reading parameters...");
-                ParseSampleSheet sampleSheet = new ParseSampleSheet(parameters);
-
+                ParseSampleSheet sampleSheet = new ParseSampleSheet();
+                try
+                {
+                    sampleSheet = new ParseSampleSheet(parameters);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("ERROR: An error occurred while reading the SampleSheet.");
+                    Console.WriteLine(e);
+                    throw;
+                }
                 // Write these parameters to the logfile (for reference if needed)
                 // DEV: localLogFilename should be in parameters
                 //      and the "0" log code should probably be the default...
@@ -69,7 +84,17 @@ namespace WRGLPipeline
                 // Check analysis type and run appropriate wrapper
                 if (sampleSheet.Analyses.Count > 0)
                 {
-                    Dictionary<string, Tuple<string, string>> fastqFileNames = new Dictionary<string, Tuple<string, string>>(GetFASTQFileNames(sampleSheet, parameters));
+                    Dictionary<string, Tuple<string, string>> fastqFileNames = new Dictionary<string, Tuple<string, string>>();
+                    try
+                    {
+                        fastqFileNames = GetFASTQFileNames(sampleSheet, parameters);
+                    } catch (Exception e)
+                    {
+                        // DEV
+                        AuxillaryFunctions.WriteLog("An error occurred while reading Fastq file names. This is ok for myeloid runs", parameters.LocalLogFilename, 1, false, parameters);
+                        Console.WriteLine("Couldn't get fastq file names");
+                        Console.WriteLine(e);
+                    }
 
                     // Analyse samples with the correct wrapper class depending on the samplesheet contents
                     if (sampleSheet.Analyses.ContainsKey("G"))
@@ -86,7 +111,7 @@ namespace WRGLPipeline
                         // Most are likely to be myeloid panel runs, which we want to copy to the network and create
                         // coverage summaries for automatically.
                         // Assume that any "A" is myeloid and run the wrapper. If it's not right, it won't matter as this is non-destructive.
-                        new MyeloidPipelineWrapper(sampleSheet, parameters, fastqFileNames);
+                        new MyeloidPipelineWrapper(sampleSheet, parameters);
                     }
                     else
                     {

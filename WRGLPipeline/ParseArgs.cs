@@ -9,6 +9,7 @@ namespace WRGLPipeline
         // e.g. parser.getData
         public bool GetData { get; private set; }
         public bool CopyToNetwork { get; private set; }
+        public bool BamDownload { get; private set; }
         public string Path { get; private set; }
         /// <summary>
         /// Define the allowed arguments.
@@ -31,6 +32,10 @@ namespace WRGLPipeline
             [Option('z', "skipCopyToNetwork", Required = false,
                     Default = false, HelpText = "Enable copy run data to network")]
             public bool SkipCopyToNetwork { get; set; }
+
+            [Option('b', "skipBamDownload", Required = false,
+                    Default = false, HelpText = "Don't download BAM files")]
+            public bool SkipBamDownload { get; set; }
 
             // Capture the first of any positional args - this should be the path
             // Anything else will be discarded.
@@ -60,9 +65,10 @@ namespace WRGLPipeline
             parser.ParseArguments<Options>(args).WithParsed<Options>(options =>
             {
                 GetData = options.GetData;
-                // We want to reverese the skipCopyToNetwork option, as the code is written
-                // assuming the flag would specify you should copy
-                CopyToNetwork = !options.SkipCopyToNetwork;
+                // We want to reverese the skipCopyToNetwork and SkipBamDownload options, as the code is written
+                // assuming the flag would specify you should copy/download unless otherwise specified
+                CopyToNetwork = ! options.SkipCopyToNetwork;
+                BamDownload = ! options.SkipBamDownload; 
                 // This should be asserted as an actual file/directory elsewhere
                 Path = options.Path;
             });

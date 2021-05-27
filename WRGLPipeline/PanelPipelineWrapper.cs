@@ -28,40 +28,13 @@ namespace WRGLPipeline
         readonly Dictionary<string, Tuple<string, string>> fastqFileNames;
 
         /// <summary>
-        /// Connection settings for Iridis 4 A
-        /// </summary>
-        readonly private SessionOptions iridis4a = new SessionOptions
-        {
-            Protocol = Protocol.Sftp,
-            HostName = @"iridis4_a.soton.ac.uk",
-        };
-        
-        /// <summary>
-        /// Connection settings for Iridis 4 B
-        /// </summary>
-        readonly private SessionOptions iridis4b = new SessionOptions
-        {
-            Protocol = Protocol.Sftp,
-            HostName = @"iridis4_b.soton.ac.uk",
-        };
-
-        /// <summary>
-        /// Connection settings for Iridis 4 C
-        /// </summary>
-        readonly private SessionOptions iridis4c = new SessionOptions
-        {
-            Protocol = Protocol.Sftp,
-            HostName = @"iridis4_c.soton.ac.uk",
-        };
-
-        /// <summary>
         /// Performs the panels pipeline analysis
         /// </summary>
         /// <param name="_sampleSheet">Parsed SampleSheet for the run</param>
         /// <param name="_parameters">Configure ProgrammeParameters</param>
         /// <param name="_fastqFileNames">Dictionary of sample IDs and corresponding R1 and R2 fastq files</param>
         /// <remarks>I'm not sure if this is really testable...</remarks>
-        public PanelPipelineWrapper(ParseSampleSheet _sampleSheet, ProgrammeParameters _parameters, 
+        public PanelPipelineWrapper(ParseSampleSheet _sampleSheet, ProgrammeParameters _parameters,
             Dictionary<string, Tuple<string, string>> _fastqFileNames)
         {
             this.parameters = _parameters;
@@ -85,36 +58,6 @@ namespace WRGLPipeline
         private void ExecutePanelPipeline()
         {
             AuxillaryFunctions.WriteLog(@"Starting panel pipeline...", parameters.LocalLogFilename, 0, false, parameters);
-
-            // DEV: These seem like there should be a more efficient way of configuring these...
-            //      e.g. a base instance that is then inherited by the others?
-            //configure connection
-            iridis4a.UserName = parameters.SotonUserName;
-            iridis4a.Password = ProgrammeParameters.ToInsecureString(parameters.SotonPassword);
-            iridis4a.SshHostKeyFingerprint = parameters.IridisHostKey;
-            iridis4a.AddRawSettings(@"Tunnel", @"1");
-            iridis4a.AddRawSettings(@"TunnelHostName", @"ssh.soton.ac.uk");
-            iridis4a.AddRawSettings(@"TunnelUserName", parameters.SotonUserName);
-            iridis4a.AddRawSettings(@"TunnelPasswordPlain", ProgrammeParameters.ToInsecureString(parameters.SotonPassword));
-            iridis4a.AddRawSettings(@"TunnelHostKey", parameters.SSHHostKey);
-
-            iridis4b.UserName = parameters.SotonUserName;
-            iridis4b.Password = ProgrammeParameters.ToInsecureString(parameters.SotonPassword);
-            iridis4b.SshHostKeyFingerprint = parameters.IridisHostKey;
-            iridis4b.AddRawSettings(@"Tunnel", @"1");
-            iridis4b.AddRawSettings(@"TunnelHostName", @"ssh.soton.ac.uk");
-            iridis4b.AddRawSettings(@"TunnelUserName", parameters.SotonUserName);
-            iridis4b.AddRawSettings(@"TunnelPasswordPlain", ProgrammeParameters.ToInsecureString(parameters.SotonPassword));
-            iridis4b.AddRawSettings(@"TunnelHostKey", parameters.SSHHostKey);
-
-            iridis4c.UserName = parameters.SotonUserName;
-            iridis4c.Password = ProgrammeParameters.ToInsecureString(parameters.SotonPassword);
-            iridis4c.SshHostKeyFingerprint = parameters.IridisHostKey;
-            iridis4c.AddRawSettings(@"Tunnel", @"1");
-            iridis4c.AddRawSettings(@"TunnelHostName", @"ssh.soton.ac.uk");
-            iridis4c.AddRawSettings(@"TunnelUserName", parameters.SotonUserName);
-            iridis4c.AddRawSettings(@"TunnelPasswordPlain", ProgrammeParameters.ToInsecureString(parameters.SotonPassword));
-            iridis4c.AddRawSettings(@"TunnelHostKey", parameters.SSHHostKey);
 
             //create local output analysis directory
             try { Directory.CreateDirectory(localAnalysisDir); } catch (Exception e) {
@@ -140,11 +83,11 @@ namespace WRGLPipeline
             WriteVariablesFiles();
 
             // if getdata is false, run the UploadAndExecute function 
-            if (!parameters.GetData){
+            if (!parameters.GetData) {
 
                 //upload and execute pipeline
                 UploadAndExecute();
-    
+
                 //wait before checking download
                 AuxillaryFunctions.WriteLog(@"Pipeline idle. Going to sleep...", parameters.LocalLogFilename, 0, false, parameters);
 
@@ -153,13 +96,14 @@ namespace WRGLPipeline
                 TimeSpan waitTime = new TimeSpan(1, 0, 0);
                 Thread.Sleep(waitTime);
             }
-            
+
             //poll IRIDIS4 for run completion file
             for (int k = 0; k < 200; ++k)
             {
                 AuxillaryFunctions.WriteLog(@"Download data attempt " + (k + 1), parameters.LocalLogFilename, 0, false, parameters);
 
-                if (GetData() == false) //run pending
+                // Runs GetData and checks the result - false == pending, anything else == run complete and downloaded
+                if (GetData() == false)
                 {
                     AuxillaryFunctions.WriteLog(@"Pipeline idle. Going to sleep...", parameters.LocalLogFilename, 0, false, parameters);
 
@@ -182,22 +126,31 @@ namespace WRGLPipeline
                     }
 
                     AuxillaryFunctions.WriteLog(@"Variant report path is " + localReportFilename, parameters.LocalLogFilename, 0, false, parameters);
+
+                    // DEV: Remove all email functionality?
                     //AuxillaryFunctions.SendRunCompletionEmail(parameters.localLogFilename, parameters.getPanelRepo + @"\" + Path.GetFileName(localReportFilename), sampleSheet, @"Panel_" + PanelPipelineVerison, parameters.runID, parameters);
+
+                    // Download BAM files unless otherwise specified by the user.
+                    if ( parameters.BamDownload)
+                    {
+                        DownloadBamsToLocalStore();
+                    }
                     return;
                 }
             }
-            
+
             //data not downloaded
             AuxillaryFunctions.WriteLog(@"Data Colletion Timeout.", parameters.LocalLogFilename, -1, false, parameters);
             throw new TimeoutException();
+
         }
-        
+
         /// <summary>
         /// Connects to Iridis, uploads data, and triggers remote analysis scripts 
         /// </summary>
         private void UploadAndExecute()
         {
-            using (Session session = new Session())
+            using (Session session = ConnectToIridis())
             {
                 TransferOperationResult transferResult;
                 TransferOptions transferOptions = new TransferOptions
@@ -208,43 +161,6 @@ namespace WRGLPipeline
                 };
                 StringBuilder bashCommand = new StringBuilder();
                 string RemoteSampleFolder;
-
-                //set up logging
-                session.SessionLogPath = winscpLogPath;
-
-                try //4a
-                {
-                    //Connect to iridis4a
-                    AuxillaryFunctions.WriteLog(@"Connecting To Iridis4a...", parameters.LocalLogFilename, 0, false, parameters);
-                    session.Open(iridis4a);
-                }
-                catch (WinSCP.SessionRemoteException a)
-                {
-                    AuxillaryFunctions.WriteLog(@"Could not connect: " + a.ToString(), parameters.LocalLogFilename, 1, false, parameters);
-
-                    try //4b
-                    {
-                        //Connect to iridis4b
-                        AuxillaryFunctions.WriteLog(@"Connecting To Iridis4b...", parameters.LocalLogFilename, 0, false, parameters);
-                        session.Open(iridis4b);
-                    }
-                    catch (WinSCP.SessionRemoteException b)
-                    {
-                        AuxillaryFunctions.WriteLog(@"Could not connect: " + b.ToString(), parameters.LocalLogFilename, 1, false, parameters);
-
-                        try //4c
-                        {
-                            //Connect to iridis4c
-                            AuxillaryFunctions.WriteLog(@"Connecting To Iridis4c...", parameters.LocalLogFilename, 0, false, parameters);
-                            session.Open(iridis4c);
-                        }
-                        catch (WinSCP.SessionRemoteException c)
-                        {
-                            AuxillaryFunctions.WriteLog(@"Could not connect: " + c.ToString(), parameters.LocalLogFilename, -1, false, parameters);
-                            throw;
-                        }
-                    }
-                }
 
                 //make remote project directory
                 try
@@ -260,13 +176,18 @@ namespace WRGLPipeline
 
                 // Upload preferred transcripts file
                 // This can be done with the full file path from the .ini file, but to download we will need just the file name
-                transferResult = session.PutFiles(parameters.PreferredTranscriptsPath, scratchDir + parameters.RunID + @"/", false, transferOptions);
-                transferResult.Check(); // Throw on any error
+                // DEV: Can this be one-lined?
+                //transferResult = session.PutFiles(parameters.PreferredTranscriptsPath, scratchDir + parameters.RunID + @"/", false, transferOptions);
+                //transferResult.Check(); // Throw on any error
+
+                // DEV: If this works, update the transfers below to match
+                session.PutFiles(parameters.PreferredTranscriptsPath, scratchDir + parameters.RunID + @"/", false, transferOptions).Check();
 
                 //loop over Sample_IDs and upload FASTQs
                 foreach (SampleRecord record in sampleSheet.SampleRecords)
                 {
-                    if (record.Analysis != @"P"){
+                    if (record.Analysis != @"P")
+                    {
                         continue;
                     }
 
@@ -297,7 +218,7 @@ namespace WRGLPipeline
                     //upload variables file
                     transferResult = session.PutFiles(localAnalysisDir + @"\" + record.Sample_ID + @".variables", RemoteSampleFolder + @"/", false, transferOptions);
                     transferResult.Check(); // Throw on any error
-                    
+
                     //copy BEDfile to RemoteSamplefolder
                     transferResult = session.PutFiles(sampleSheet.Analyses[@"P"], RemoteSampleFolder + @"/", false, transferOptions);
                     transferResult.Check(); // Throw on any error
@@ -331,45 +252,8 @@ namespace WRGLPipeline
         /// <remarks>Iridis connection really needs to be refactored - it's duplicated in several functions</remarks>
         private bool GetData()
         {
-            using (Session session = new Session())
+            using (Session session = ConnectToIridis())
             {
-                //set up logging
-                session.SessionLogPath = winscpLogPath;
-
-                try //4a
-                {
-                    //Connect to iridis4a
-                    AuxillaryFunctions.WriteLog(@"Connecting to Iridis4a...", parameters.LocalLogFilename, 0, false, parameters);
-                    session.Open(iridis4a);
-                }
-                catch (Exception a)
-                {
-                    AuxillaryFunctions.WriteLog(@"Could not connect " + a.ToString(), parameters.LocalLogFilename, 1, false, parameters);
-
-                    try //4b
-                    {
-                        //Connect to iridis4b
-                        AuxillaryFunctions.WriteLog(@"Connecting to Iridis4b...", parameters.LocalLogFilename, 0, false, parameters);
-                        session.Open(iridis4b);
-                    }
-                    catch (Exception b)
-                    {
-                        AuxillaryFunctions.WriteLog(@"Could not connect " + b.ToString(), parameters.LocalLogFilename, 1, false, parameters);
-
-                        try //4c
-                        {
-                            //Connect to iridis4c
-                            AuxillaryFunctions.WriteLog(@"Connecting to Iridis4c...", parameters.LocalLogFilename, 0, false, parameters);
-                            session.Open(iridis4c);
-                        }
-                        catch (Exception c)
-                        {
-                            AuxillaryFunctions.WriteLog(@"Could not connect " + c.ToString(), parameters.LocalLogFilename, -1, false, parameters);
-                            throw;
-                        }
-                    }
-                }
-                
                 //check if job is complete
                 if (session.FileExists(scratchDir + parameters.RunID + @"/complete"))
                 {
@@ -383,9 +267,9 @@ namespace WRGLPipeline
                     session.GetFiles(scratchDir + parameters.RunID + @"/*.bed", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + parameters.RunID + @"/*.sh", localAnalysisDir + @"\").Check();
                     session.GetFiles(scratchDir + parameters.RunID + @"/*.config", localAnalysisDir + @"\").Check();
+                    // If <parameters.runID>_genecoverage.zip file exists download it
                     try
-                    {
-                        // If <parameters.runID>_genecoverage.zip file exists download it
+                    {                        
                         session.GetFiles(scratchDir + parameters.RunID + @"/" + parameters.RunID + @"_genecoverage.zip", localAnalysisDir + @"\").Check();
                         // And move it to the network
                         if (parameters.CopyToNetwork)
@@ -395,12 +279,14 @@ namespace WRGLPipeline
                     }
                     catch
                     {
-                        // If it doesn't exist, catch the error and log as this file is not essential
+                        // If it doesn't exist, catch the error and log as this file is not essential (for this step of the process)
                         AuxillaryFunctions.WriteLog(@"No genecoverage.zip file found", parameters.LocalLogFilename, 1, false, parameters);
                     }
-                    session.GetFiles(scratchDir + parameters.RunID + @"/" + sampleSheet.SampleRecords[1].Sample_ID + @"/*.sh", localAnalysisDir + @"\").Check(); // download a single copy of the scripts from the first sample
+                    // Download a single copy of the scripts from the first sample
+                    // This is needed as we don't have a copy of all scripts in the root run folder.
+                    session.GetFiles(scratchDir + parameters.RunID + @"/" + sampleSheet.SampleRecords[1].Sample_ID + @"/*.sh", localAnalysisDir + @"\").Check();
 
-                    //copy to network
+                    // Copy to network
                     if (parameters.CopyToNetwork)
                     {
                         File.Copy(localAnalysisDir + @"\" + parameters.RunID + "_Filtered_Annotated.vcf", networkAnalysisDir + @"\" + parameters.RunID + "_Filtered_Annotated.vcf");
@@ -408,7 +294,7 @@ namespace WRGLPipeline
                         File.Copy(localAnalysisDir + @"\" + parameters.RunID + "_Coverage.txt", networkAnalysisDir + @"\" + parameters.RunID + "_Coverage.txt");
                         File.Copy(localAnalysisDir + @"\" + parameters.PreferredTranscriptsFile, networkAnalysisDir + @"\" + parameters.PreferredTranscriptsFile);
 
-                        //copy files to the network
+                        // Copy multiple files to the network - I think this might be because File.Copy only does single files?
                         foreach (var f in Directory.GetFiles(localAnalysisDir).Where(path => Regex.Match(path, @".*.bed").Success)) { File.Copy(f, networkAnalysisDir + @"\" + Path.GetFileName(f)); }
                         foreach (var f in Directory.GetFiles(localAnalysisDir).Where(path => Regex.Match(path, @".*.sh").Success)) { File.Copy(f, networkAnalysisDir + @"\" + Path.GetFileName(f)); }
                         foreach (var f in Directory.GetFiles(localAnalysisDir).Where(path => Regex.Match(path, @".*.config").Success)) { File.Copy(f, networkAnalysisDir + @"\" + Path.GetFileName(f)); }
@@ -416,6 +302,7 @@ namespace WRGLPipeline
 
                     return true;
                 }
+                // If the run doesn't appear to have finished, display a message so the user knows this.
                 else
                 {
                     AuxillaryFunctions.WriteLog(@"Marker File Not Found. Run is Pending", parameters.LocalLogFilename, 0, false, parameters);
@@ -479,13 +366,13 @@ namespace WRGLPipeline
             AuxillaryFunctions.WriteLog(@"Check samples...", parameters.LocalLogFilename, 0, false, parameters);
             foreach (SampleRecord record in sampleSheet.SampleRecords)
             {
-                if (record.Analysis != @"P"){
+                if (record.Analysis != @"P") {
                     continue;
                 }
 
                 if (!VCFFile.VCFRecords.ContainsKey(record.Sample_ID))
                 {
-                    AuxillaryFunctions.WriteLog(@"Sample " + record.Sample_ID + " has no genotypes in panel VCF" , parameters.LocalLogFilename, -1, false, parameters);
+                    AuxillaryFunctions.WriteLog(@"Sample " + record.Sample_ID + " has no genotypes in panel VCF", parameters.LocalLogFilename, -1, false, parameters);
                     throw new FileLoadException();
                 }
 
@@ -514,7 +401,7 @@ namespace WRGLPipeline
                             panelReport.Write(record.Sample_Name + "\t");
                             panelReport.Write(ann.Gene_Name + "\t");
 
-                            if (hgvs.Length == 2){ //c. and p.
+                            if (hgvs.Length == 2) { //c. and p.
                                 panelReport.Write(hgvs[1] + "\t"); //c.
                                 panelReport.Write(hgvs[0] + "\t"); //p.
                             }
@@ -523,7 +410,7 @@ namespace WRGLPipeline
                                 panelReport.Write(hgvs[0] + "\t"); //c.
                                 panelReport.Write("\t");
                             }
-                            
+
                             //print exon
                             panelReport.Write("{0}\t", ann.Exon_Rank);
 
@@ -531,8 +418,8 @@ namespace WRGLPipeline
                             if (VCFrecord.FORMAT["GT"] == @"0/1" || VCFrecord.FORMAT["GT"] == @"1/0")
                             {
                                 panelReport.Write("HET\t");
-                            } 
-                            else if (VCFrecord.FORMAT["GT"] == @"1/1"){
+                            }
+                            else if (VCFrecord.FORMAT["GT"] == @"1/1") {
                                 panelReport.Write("HOM_ALT\t");
                             }
                             // uncertain genotypes (i.e. with ".") should be flagged.
@@ -559,7 +446,7 @@ namespace WRGLPipeline
                             panelReport.Write(ann.Transcript_ID + "\t");
                             panelReport.Write(ann.Effect + "\t");
 
-                            if (interpretations.ContainsKey(tempGenomicVariant)){
+                            if (interpretations.ContainsKey(tempGenomicVariant)) {
                                 panelReport.Write(interpretations[tempGenomicVariant] + "\t");
                             }
                             else
@@ -668,7 +555,7 @@ namespace WRGLPipeline
             List<string> sampleIDs = new List<string>();
 
             //read sampleID order
-            using(FileStream stream = new FileStream(samtoolsDepthSampleIDFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (FileStream stream = new FileStream(samtoolsDepthSampleIDFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
                 using (StreamReader fileInput = new StreamReader(stream))
                 {
@@ -698,7 +585,7 @@ namespace WRGLPipeline
             }
 
             // loop over output and assign failed to low coverage amplicons
-            using(FileStream stream = new FileStream(samtoolsDepthFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (FileStream stream = new FileStream(samtoolsDepthFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
                 using (StreamReader reader = new StreamReader(stream))
                 {
@@ -765,7 +652,7 @@ namespace WRGLPipeline
 
             foreach (SampleRecord record in sampleSheet.SampleRecords)
             {
-                if (record.Analysis == @"P"){
+                if (record.Analysis == @"P") {
                     AnalysisDirs.Append('"');
                     AnalysisDirs.Append(scratchDir);
                     AnalysisDirs.Append(parameters.RunID);
@@ -779,13 +666,13 @@ namespace WRGLPipeline
 
             foreach (SampleRecord record in sampleSheet.SampleRecords)
             {
-                if (record.Analysis != @"P"){
+                if (record.Analysis != @"P") {
                     continue;
                 }
 
                 //open variables output file
                 StreamWriter VarFile = new StreamWriter(localAnalysisDir + @"\" + record.Sample_ID + @".variables");
-             
+
                 VarFile.Write("#Description: Pipeline Variables File\n");
 
                 VarFile.Write("\n#Sample_ID\n");
@@ -815,6 +702,132 @@ namespace WRGLPipeline
 
                 VarFile.Close();
             }
+        }
+
+        /// <summary>
+        /// To run after report generation
+        /// Download all run BAM files from Iridis and put them in the local temporary
+        /// store for access with IGV.
+        /// </summary>
+        private void DownloadBamsToLocalStore()
+        {
+            AuxillaryFunctions.WriteLog(@"Starting BAM downloader...", parameters.LocalLogFilename, 0, false, parameters);
+            // Connect to Iridis
+            // TODO: Write ConnectToIridis function that returns the new Session object used here?
+
+            // Create the run folder in the Panels BAM store
+            string RunBamStore = $@"{parameters.BamStoreLocation}\Panels\{parameters.RunID}";
+
+            // Create the local BAM store folder (from Run ID)
+            try
+            {
+                System.IO.Directory.CreateDirectory(RunBamStore);
+            }
+            catch
+            {
+                AuxillaryFunctions.WriteLog(@"Could not create local BAM file store folder", parameters.LocalLogFilename, -1, false, parameters);
+                throw;
+            }            
+
+            // Connect to Iridis and download the BAM files for each sample
+            using (Session session = ConnectToIridis())
+            {
+                //TODO
+                //TransferOptions transferOptions = new TransferOptions();
+                //transferOptions.TransferMode = TransferMode.Binary;
+                TransferOptions transferOptions = new TransferOptions
+                {
+                    TransferMode = TransferMode.Binary,
+                    OverwriteMode = OverwriteMode.Resume,
+                };
+                // I don't know why this can't be defined with the rest of the transferOptions above!
+                transferOptions.ResumeSupport.State = TransferResumeSupportState.On;
+
+                // For each sample, download the BAM file
+                foreach (SampleRecord record in sampleSheet.SampleRecords)
+                {
+                    string BamRootFileRemote = $@"{scratchDir}/{parameters.RunID}/{record.Sample_ID}/{parameters.RunID}_{record.Sample_ID}";
+                    string BamRootFileLocal = $@"{RunBamStore}\{parameters.RunID}_{record.Sample_ID}";
+
+                    AuxillaryFunctions.WriteLog($@"Download {BamRootFileRemote} to {BamRootFileLocal}...", parameters.LocalLogFilename, 0, false, parameters);
+
+                    if ( ! File.Exists($@"{BamRootFileLocal}.bam"))
+                    {
+                        session.GetFiles($@"{BamRootFileRemote}.bam", $@"{BamRootFileLocal}.bam", false, transferOptions).Check();
+                    }
+                    session.GetFiles($@"{BamRootFileRemote}.bai", $@"{BamRootFileLocal}.bai", false, transferOptions).Check();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Creates a Session object connected to iridis, so this functionality doens't need to be repeated.
+        /// </summary>
+        /// <returns></returns>
+        private Session ConnectToIridis()
+        {
+            // DEV: We might also want to put the original iridis4a,b,c settings instantiation in here, but only
+            // once we start to transfer the other steps to use this function.
+
+            // Create the session object and set up the WinSCP logging file
+
+            SessionOptions iridis4SessionOptions = new SessionOptions
+            {
+                Protocol = Protocol.Sftp,
+                HostName = @"iridis4_a.soton.ac.uk",
+                UserName = parameters.SotonUserName,
+                Password = ProgrammeParameters.ToInsecureString(parameters.SotonPassword),
+                SshHostKeyFingerprint = parameters.IridisHostKey,
+            };
+            iridis4SessionOptions.AddRawSettings(@"Tunnel", @"1");
+            iridis4SessionOptions.AddRawSettings(@"TunnelHostName", @"ssh.soton.ac.uk");
+            iridis4SessionOptions.AddRawSettings(@"TunnelUserName", parameters.SotonUserName);
+            iridis4SessionOptions.AddRawSettings(@"TunnelPasswordPlain", ProgrammeParameters.ToInsecureString(parameters.SotonPassword));
+            iridis4SessionOptions.AddRawSettings(@"TunnelHostKey", parameters.SSHHostKey);
+
+            Session session = new Session
+            {
+                SessionLogPath = winscpLogPath
+            };
+
+            // Try to connect to each Iridis login node in turn, in case one of them is down
+            // Connect to iridis4a
+            try
+            {
+                iridis4SessionOptions.HostName = @"iridis4_a.soton.ac.uk";
+                AuxillaryFunctions.WriteLog($@"Connecting To {iridis4SessionOptions.HostName}...", parameters.LocalLogFilename, 0, false, parameters);
+                session.Open(iridis4SessionOptions);
+            }
+            catch (WinSCP.SessionRemoteException a)
+            {
+                AuxillaryFunctions.WriteLog(@"Could not connect: " + a.ToString(), parameters.LocalLogFilename, 1, false, parameters);
+                // Connect to iridis4b
+                try
+                {
+                    iridis4SessionOptions.HostName = @"iridis4_b.soton.ac.uk";
+                    AuxillaryFunctions.WriteLog(@"Connecting To {iridis4SessionOptions.HostName}...", parameters.LocalLogFilename, 0, false, parameters);
+                    session.Open(iridis4SessionOptions);
+                }
+                catch (WinSCP.SessionRemoteException b)
+                {
+                    AuxillaryFunctions.WriteLog(@"Could not connect: " + b.ToString(), parameters.LocalLogFilename, 1, false, parameters);
+                    // Connect to iridis4c
+                    try
+                    {
+                        iridis4SessionOptions.HostName = @"iridis4_c.soton.ac.uk";
+                        AuxillaryFunctions.WriteLog(@"Connecting To {iridis4SessionOptions.HostName}...", parameters.LocalLogFilename, 0, false, parameters);
+                        session.Open(iridis4SessionOptions);
+                    }
+                    catch (WinSCP.SessionRemoteException c)
+                    {
+                        AuxillaryFunctions.WriteLog(@"Could not connect: " + c.ToString(), parameters.LocalLogFilename, -1, false, parameters);
+                        // This error is not caught, and so will end the pipeline as we can't connect to any login node
+                        throw;
+                    }
+                }
+            }
+            // If we reach here then we should have a correctly opened session!
+            return session;
         }
     }
 }

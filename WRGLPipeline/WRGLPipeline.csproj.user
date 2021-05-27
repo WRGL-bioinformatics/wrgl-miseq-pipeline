@@ -1,12 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
-    <StartArguments>"C:\Users\ben\Documents\Work\MOCK_MISEQ\D\Illumina\MiSeq Analysis\201218_M01875_0648_000000000-JC664_PANEL_DEV\Data\Intensities\BaseCalls\Alignment"</StartArguments>
+    <StartArguments>--getData --skipCopyToNetwork D:\Illumina\MiSeqAnalysis\210409_M00321_0539_000000000-JK3LF\Data\Intensities\BaseCalls\Alignment</StartArguments>
     <StartAction>Program</StartAction>
     <StartProgram>C:\Users\ben\Source\Repos\WRGLPipeline\WRGLPipeline\bin\Debug\bin\WRGLPipeline.exe</StartProgram>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
-    <StartArguments>C:\Users\ben\Documents\Work\201218_M01875_0648_000000000-JC664\Data\Intensities\BaseCalls\Alignment</StartArguments>
+    <StartArguments>--getData --skipCopyToNetwork D:\Illumina\MiSeqAnalysis\210409_M00321_0539_000000000-JK3LF\Data\Intensities\BaseCalls\Alignment</StartArguments>
     <StartWorkingDirectory>
     </StartWorkingDirectory>
   </PropertyGroup>
