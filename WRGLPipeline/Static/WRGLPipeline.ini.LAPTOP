@@ -35,6 +35,7 @@ Pisces=C:\Users\ben\Documents\Work\MOCK_MISEQ\Z\WRGLPipeline\Genotype\Software\P
 [CommonParameters]
 PreferredTranscripts=C:\Users\ben\Documents\Work\MOCK_MISEQ\Z\WRGLPipeline\Panel\PreferredTranscripts_v2.txt
 NetworkDirectory=C:\Users\ben\Documents\Work\MOCK_MISEQ\Z\Illumina\MiSeqOutput
+BamStoreLocation=D:\Share\BAM-STORE-DEVELOPMENT
 
 [AnalysisParameters]
 GenotypingDepth=1000

@@ -14,18 +14,15 @@ namespace WRGLPipeline
         //      I've included the so it matches the other pipeline wrappers.
         readonly private ParseSampleSheet sampleSheet;
         readonly private ProgrammeParameters parameters;
-        readonly private Dictionary<string, Tuple<string, string>> fastqFileNames;
         /// <summary>
         /// Runs the myeloid coverage and trasfer Python app.
         /// </summary>
         /// <param name="_parameters">Configured ProgrammeParameters</param>
         /// <param name="_sampleSheet">Parsed SampleSheet</param>
-        /// <param name="_fastqFilenames">R1 and R2 fastq filenames for the sample</param>
-        public MyeloidPipelineWrapper(ParseSampleSheet _sampleSheet, ProgrammeParameters _parameters, Dictionary<string, Tuple<string, string>> _fastqFileNames)
+        public MyeloidPipelineWrapper(ParseSampleSheet _sampleSheet, ProgrammeParameters _parameters)
         {
             this.sampleSheet = _sampleSheet;
             this.parameters = _parameters;
-            this.fastqFileNames = _fastqFileNames;
 
             ExecuteMyeloidPipeline();
         }
@@ -34,7 +31,7 @@ namespace WRGLPipeline
         /// </summary>
         public void ExecuteMyeloidPipeline()
         {
-            AuxillaryFunctions.WriteLog(@"Starting myeloid post-run processing...", parameters.LocalLogFilename, 0, false, parameters);
+            AuxillaryFunctions.WriteLog($@"Starting myeloid post-run processing for {this.sampleSheet.ExperimentName}...", parameters.LocalLogFilename, 0, false, parameters);
 
             // The myeloid coverage script needs to get the Analysis folder for the run
             // this is passed to the pipeline by MiSeq Reporter as the only arg, but to match
@@ -55,6 +52,9 @@ namespace WRGLPipeline
 
             logFile.Write(myeloidTransfer.StandardOutput.ReadToEnd());
             logFile.Write(myeloidTransfer.StandardError.ReadToEnd());
+
+            myeloidTransfer.WaitForExit();
+            myeloidTransfer.Close();
 
             AuxillaryFunctions.WriteLog(@"Myeloid transfer complete.", parameters.LocalLogFilename, 0, false, parameters);
         }

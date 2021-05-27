@@ -214,6 +214,9 @@ namespace WRGLPipeline
             logFile.Write(samtoolsSortBam.StandardOutput.ReadToEnd());
             logFile.Write(samtoolsSortBam.StandardError.ReadToEnd());
 
+            samtoolsSortBam.WaitForExit();
+            samtoolsSortBam.Close();
+
             //index BAM
             Process samtoolsIndexBam = new Process();
             samtoolsIndexBam.StartInfo.FileName = parameters.SamtoolsPath;
@@ -226,6 +229,9 @@ namespace WRGLPipeline
            
             logFile.Write(samtoolsIndexBam.StandardOutput.ReadToEnd());
             logFile.Write(samtoolsIndexBam.StandardError.ReadToEnd());
+
+            samtoolsIndexBam.WaitForExit();
+            samtoolsIndexBam.Close();
 
             // Check to see what indel realigner to use
             if (parameters.GenotypingUseGemini == true)
@@ -459,18 +465,8 @@ namespace WRGLPipeline
                     if (record.FILTER == "PASS" && record.QUAL >= parameters.GenotypingQual && int.Parse(record.INFO["DP"]) >= parameters.GenotypingDepth)
                     {
                         GenomicVariant tempVariant = new GenomicVariant(CHROM: record.CHROM, REF: record.REF, ALT: record.ALT, POS: record.POS);
-                        //tempVariant.CHROM = record.CHROM;
-                        //tempVariant.REF = record.REF;
-                        //tempVariant.ALT = record.ALT;
-                        //tempVariant.POS = record.POS;
                         uniqueGenomicVariants.Add(tempVariant);
                     }
-                    // DEV: Record failing variants
-                    //else
-                    //{
-                    //    string varstring = record.CHROM + ":" + record.POS + record.REF + ">" + record.ALT;
-                    //    AuxillaryFunctions.WriteLog("Variant " + varstring + " appears to have failed.", parameters.LocalLogFilename, 1, false, parameters);
-                    //}
                 }
 
             } //done looping over files

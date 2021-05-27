@@ -3,6 +3,15 @@
 C# pipeline that runs on MiSeq completion and manages data through either panels
 or genotyping pipelines.
 
+### Bam-Download updated
+
+ * Now transfers all BAM files (panels, genotyping, and myeloid) into a local temporary file store for ease of access by scientists with IGV
+
+### Patch 2021-03-01
+
+ * Removed FastqFileNames argument from Myeloid wrapper, as this was causing problems with Fastq files being read as a single string rather than dict<string, string>
+ * TODO: GetFASTQFileNames function will be moved to ParseSampleSheet, and updated to handle all current fastq cases.
+
 ## Version 2.2.4
 
 ### Change summary

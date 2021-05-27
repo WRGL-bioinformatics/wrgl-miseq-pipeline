@@ -35,6 +35,10 @@ namespace WRGLPipeline
         public Dictionary<string, string> Analyses { get; private set; }
 
         readonly private ProgrammeParameters parameters;
+        public ParseSampleSheet()
+        {
+            // Empty constructor so we can initialise, but then try/catch for any errors
+        }
 
         /// <summary>
         /// Read an Illumina SampleSheet.csv to get sample IDs and names
@@ -55,7 +59,18 @@ namespace WRGLPipeline
             this.SampleRecords = PopulateSampleSheetEntries();
             this.ExperimentName = GetSampleSheetField("Experiment Name");
             this.InvestigatorName = GetSampleSheetField("Investigator Name");
-            this.Analyses = GetSampleSheetField("Analysis");
+            // For Myeloid runs, the "Analysis" information is under the heading of "Manifests"
+            // although it is otherwise the same. This situation should probably raise a more
+            // informative error message if the field isn't present - it took a long time to figure it out.
+            try
+            {
+                this.Analyses = GetSampleSheetField("Analysis");
+            }
+            catch
+            {
+                this.Analyses = GetSampleSheetField("Manifests");
+            }
+            
         }
 
         /// <summary>
