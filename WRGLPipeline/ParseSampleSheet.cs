@@ -180,6 +180,8 @@ namespace WRGLPipeline
 
         /// <summary>
         /// Reads a specified header field from the SampleSheet
+        /// This is called several times for different fields, which is obviously inefficient
+        /// but the file size is so small that it really makes a negligable difference.
         /// </summary>
         /// <param name="field">Name of field to find</param>
         /// <returns>Value of the specified field from the SampleSheet</returns>
