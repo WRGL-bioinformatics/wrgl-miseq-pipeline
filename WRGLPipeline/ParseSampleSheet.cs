@@ -56,18 +56,11 @@ namespace WRGLPipeline
             }
 
             // Populate fields
-            // NOTE: There are some minor differences between MSR and LRM samplesheets
-            //       try/catch will be added where appropriate
+            // NOTE: "Investigator Name" is 'investigator name' in LRM samplesheet, but it's not really important
             this.SampleRecords = PopulateSampleSheetEntries();
             this.ExperimentName = GetSampleSheetField("Experiment Name");
-            try
-            {
-                this.InvestigatorName = GetSampleSheetField("Investigator Name");
-            } catch
-            {
-                this.InvestigatorName = GetSampleSheetField("investigator name");
-            }
-            
+            this.InvestigatorName = GetSampleSheetField("Investigator Name");
+
             // For Myeloid runs, the "Analysis" information is under the heading of "Manifests"
             // although it is otherwise the same. This situation should probably raise a more
             // informative error message if the field isn't present - it took a long time to figure it out.
