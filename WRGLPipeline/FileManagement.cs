@@ -205,7 +205,7 @@ namespace WRGLPipeline
             string newFastqFolder = $@"{runFolder}\Data\Intensities\Basecalls";
             string newAlignmentFolder = $@"{newFastqFolder}\Alignment";
             Console.WriteLine($@"INFO: Creating a new alignment folder: {newAlignmentFolder}");
-            Directory.CreateDirectory(runFolder);
+            Directory.CreateDirectory(newAlignmentFolder);
 
             // There should be a subfolder of the LRM Alignment folder with the date of analysis
             // This contains the other needed files (e.g. fastqs, SampleSheet)
