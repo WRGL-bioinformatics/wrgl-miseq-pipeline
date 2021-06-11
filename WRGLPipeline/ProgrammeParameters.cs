@@ -196,6 +196,16 @@ namespace WRGLPipeline
             Console.WriteLine($@"DEV: targetdir from LRM: {SuppliedDir}");
             //DEV
 
+            // Check for an underscore in the SuppliedDir
+            // This indicates an LRM run, which can then be processed differently
+            if (SuppliedDir.Contains("_"))
+            {
+                FileManagement.PrepLRMRun(SuppliedDir);
+            }
+
+            // DEV: exit here
+            Environment.Exit(0);
+
             // Load the remaining parameters derived from the suppliedDir argument
             LocalFastqDir = AuxillaryFunctions.GetFastqDir(SuppliedDir);
             SampleSheetPath = SuppliedDir + @"\SampleSheetUsed.csv";

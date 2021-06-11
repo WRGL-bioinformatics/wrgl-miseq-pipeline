@@ -192,5 +192,33 @@ namespace WRGLPipeline
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="alignmentDir"></param>
+        public static void PrepLRMRun(string alignmentDir)
+        {
+            Console.WriteLine("INFO: This run looks like it was created with LRM, and needs to be modified");
+
+            // Create the correct Alignment folder
+            string runFolder = Directory.GetParent(alignmentDir).FullName;
+            string newFastqFolder = $@"{runFolder}\Data\Intensities\Basecalls";
+            string newAlignmentFolder = $@"{newFastqFolder}\Alignment";
+            Console.WriteLine($@"INFO: Creating a new alignment folder: {newAlignmentFolder}");
+            Directory.CreateDirectory(runFolder);
+
+            // There should be a subfolder of the LRM Alignment folder with the date of analysis
+            // This contains the other needed files (e.g. fastqs, SampleSheet)
+            // Get this folder and then copy these files to the new alignment and fastq folders
+            var subDirectories = Directory.GetDirectories(alignmentDir);
+            string alignmentSubDir = subDirectories[0];
+            string fastqFolder = $@"{alignmentSubDir}\Fastq";
+
+            // Copy the FASTQs
+            Console.WriteLine($@"INFO: Copying fastq files from {fastqFolder}");
+
+            // Copy the remaining needed files
+            //TODO
+        }
     }
 }
