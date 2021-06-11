@@ -3,6 +3,7 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 
 namespace WRGLPipeline
 {
@@ -216,6 +217,13 @@ namespace WRGLPipeline
 
             // Copy the FASTQs
             Console.WriteLine($@"INFO: Copying fastq files from {fastqFolder}");
+            string pattern = @"\.fastq.gz";
+            var files = Directory.GetFiles(fastqFolder).Where(x => Regex.IsMatch(x, pattern)).Select(x => x).ToList();
+            foreach (var item in files)
+            {
+                // DEV: use copy instead of move for testing
+                System.IO.File.Copy(item, newFastqFolder);
+            };
 
             // Copy the remaining needed files
             //TODO
