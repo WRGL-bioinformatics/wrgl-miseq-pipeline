@@ -166,6 +166,7 @@ namespace WRGLPipeline
             GenerateGenotypingVCFs.CompressVariants(parameters, sampleSheet, analysisDir);
 
             //annotated variants
+            Console.WriteLine($@"Analysis directory: {analysisDir}");
             ParseVCF annotatedVCFFile = GenerateGenotypingVCFs.CallSNPEff(parameters, analysisDir);
 
             //get minimum depth for each amplicon

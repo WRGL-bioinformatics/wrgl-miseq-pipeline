@@ -192,6 +192,10 @@ namespace WRGLPipeline
             BamDownload = parser.BamDownload;
             CopyToNetwork = parser.CopyToNetwork;
 
+            //DEV
+            Console.WriteLine($@"DEV: targetdir from LRM: {SuppliedDir}");
+            //DEV
+
             // Load the remaining parameters derived from the suppliedDir argument
             LocalFastqDir = AuxillaryFunctions.GetFastqDir(SuppliedDir);
             SampleSheetPath = SuppliedDir + @"\SampleSheetUsed.csv";
