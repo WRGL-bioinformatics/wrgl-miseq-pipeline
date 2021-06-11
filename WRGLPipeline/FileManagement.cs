@@ -197,7 +197,7 @@ namespace WRGLPipeline
         /// 
         /// </summary>
         /// <param name="alignmentDir"></param>
-        public static void PrepLRMRun(string alignmentDir)
+        public static string PrepLRMRun(string alignmentDir)
         {
             Console.WriteLine("INFO: This run looks like it was created with LRM, and needs to be modified");
 
@@ -221,12 +221,18 @@ namespace WRGLPipeline
             var files = Directory.GetFiles(fastqFolder).Where(x => Regex.IsMatch(x, pattern)).Select(x => x).ToList();
             foreach (var item in files)
             {
+                string fastqfilename = Path.GetFileName(item);
                 // DEV: use copy instead of move for testing
-                System.IO.File.Copy(item, newFastqFolder);
+                System.IO.File.Copy(item, $@"{newFastqFolder}\{fastqfilename}");
             };
 
             // Copy the remaining needed files
-            //TODO
+            System.IO.File.Copy($@"{alignmentSubDir}\SampleSheetUsed.csv", $@"{newAlignmentFolder}\SampleSheetUsed.csv");
+            System.IO.File.Copy($@"{alignmentSubDir}\DemultiplexSummaryF1L1.txt", $@"{newAlignmentFolder}\DemultiplexSummaryF1L1.txt");
+
+            // return the new alignment directory, so the rest of the process can
+            // proceed as before
+            return newAlignmentFolder;
         }
     }
 }

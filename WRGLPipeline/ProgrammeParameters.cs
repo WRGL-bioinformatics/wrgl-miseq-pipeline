@@ -192,23 +192,18 @@ namespace WRGLPipeline
             BamDownload = parser.BamDownload;
             CopyToNetwork = parser.CopyToNetwork;
 
-            //DEV
-            Console.WriteLine($@"DEV: targetdir from LRM: {SuppliedDir}");
-            //DEV
-
             // Check for an underscore in the SuppliedDir
             // This indicates an LRM run, which can then be processed differently
             if (SuppliedDir.Contains("_"))
             {
-                FileManagement.PrepLRMRun(SuppliedDir);
+               SuppliedDir = FileManagement.PrepLRMRun(SuppliedDir);
             }
-
-            // DEV: exit here
-            Environment.Exit(0);
 
             // Load the remaining parameters derived from the suppliedDir argument
             LocalFastqDir = AuxillaryFunctions.GetFastqDir(SuppliedDir);
             SampleSheetPath = SuppliedDir + @"\SampleSheetUsed.csv";
+            //DEV
+            Console.WriteLine($@"DEV: Expected SampleSheet path is: {SampleSheetPath}");
             LocalRootRunDir = AuxillaryFunctions.GetRootRunDir(SuppliedDir);
             LocalMiSeqAnalysisDir = AuxillaryFunctions.GetLocalAnalysisFolderDir(SuppliedDir);
             RunID = AuxillaryFunctions.GetRunID(SuppliedDir);

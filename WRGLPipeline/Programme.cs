@@ -25,7 +25,7 @@ namespace WRGLPipeline
                 // Any parameters derived from these values (except for panel/genotyping-specific ones)
                 // are also created by the ProgrammeParameters constructor.
                 // DEV: TODO: Ensure that all variables have appropriate properties
-                ProgrammeParameters parameters = new ProgrammeParameters();
+                ProgrammeParameters parameters; // = new ProgrammeParameters();
                 try
                 {
                     parameters = new ProgrammeParameters(args);
@@ -49,6 +49,9 @@ namespace WRGLPipeline
                     Console.WriteLine(e);
                     throw;
                 }
+
+                //DEV
+                Console.WriteLine("DEV: SampleSheet read succesfully.");
                 // Write these parameters to the logfile (for reference if needed)
                 // DEV: localLogFilename should be in parameters
                 //      and the "0" log code should probably be the default...
@@ -65,6 +68,9 @@ namespace WRGLPipeline
                 AuxillaryFunctions.WriteLog(@"Investigator name: " + sampleSheet.InvestigatorName, parameters.LocalLogFilename, 0, false, parameters);
                 AuxillaryFunctions.WriteLog(@"GetData mode: " + parameters.GetData, parameters.LocalLogFilename, 0, false, parameters);
                 AuxillaryFunctions.WriteLog(@"Copy to network: " + parameters.CopyToNetwork, parameters.LocalLogFilename, 0, false, parameters);
+
+                // DEV: exit here
+                Environment.Exit(0);
 
                 // Create the network folder for the run (unless set not to copy to the network)
                 // Do this in all cases - both full and get data.
