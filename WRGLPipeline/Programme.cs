@@ -69,9 +69,6 @@ namespace WRGLPipeline
                 AuxillaryFunctions.WriteLog(@"GetData mode: " + parameters.GetData, parameters.LocalLogFilename, 0, false, parameters);
                 AuxillaryFunctions.WriteLog(@"Copy to network: " + parameters.CopyToNetwork, parameters.LocalLogFilename, 0, false, parameters);
 
-                // DEV: exit here
-                Environment.Exit(0);
-
                 // Create the network folder for the run (unless set not to copy to the network)
                 // Do this in all cases - both full and get data.
                 if (parameters.CopyToNetwork)

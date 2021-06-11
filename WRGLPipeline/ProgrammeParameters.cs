@@ -116,10 +116,6 @@ namespace WRGLPipeline
 
             // We need the path to the directory containing the current executable
             string exelocation = AppDomain.CurrentDomain.BaseDirectory;
-            //if (Directory.Exists(exelocation + @"\bin"))
-            //{
-            //    exelocation += @"\bin";
-            //}
             var config = new ConfigurationBuilder()
                 .SetBasePath(exelocation)
                 .AddIniFile("WRGLPipeline.ini", optional: false)
@@ -201,10 +197,7 @@ namespace WRGLPipeline
 
             // Load the remaining parameters derived from the suppliedDir argument
             LocalFastqDir = AuxillaryFunctions.GetFastqDir(SuppliedDir);
-            SampleSheetPath = SuppliedDir + @"\SampleSheetUsed.csv";
-            //DEV
-            Console.WriteLine($@"DEV: Expected SampleSheet path is: {SampleSheetPath}");
-            LocalRootRunDir = AuxillaryFunctions.GetRootRunDir(SuppliedDir);
+            SampleSheetPath = SuppliedDir + @"\SampleSheetUsed.csv";LocalRootRunDir = AuxillaryFunctions.GetRootRunDir(SuppliedDir);
             LocalMiSeqAnalysisDir = AuxillaryFunctions.GetLocalAnalysisFolderDir(SuppliedDir);
             RunID = AuxillaryFunctions.GetRunID(SuppliedDir);
             NetworkRootRunDir = NetworkDirectory + @"\" + RunID;
