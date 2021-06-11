@@ -55,10 +55,19 @@ namespace WRGLPipeline
                 throw new FileNotFoundException();
             }
 
-            //populate fields
+            // Populate fields
+            // NOTE: There are some minor differences between MSR and LRM samplesheets
+            //       try/catch will be added where appropriate
             this.SampleRecords = PopulateSampleSheetEntries();
             this.ExperimentName = GetSampleSheetField("Experiment Name");
-            this.InvestigatorName = GetSampleSheetField("Investigator Name");
+            try
+            {
+                this.InvestigatorName = GetSampleSheetField("Investigator Name");
+            } catch
+            {
+                this.InvestigatorName = GetSampleSheetField("investigator name");
+            }
+            
             // For Myeloid runs, the "Analysis" information is under the heading of "Manifests"
             // although it is otherwise the same. This situation should probably raise a more
             // informative error message if the field isn't present - it took a long time to figure it out.
