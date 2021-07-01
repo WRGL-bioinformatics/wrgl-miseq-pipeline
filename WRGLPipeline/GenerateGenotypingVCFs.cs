@@ -530,6 +530,11 @@ namespace WRGLPipeline
             snpEffParameters.Append(analysisDir);
             snpEffParameters.Append(@"\UnannotatedVariants.vcf");
 
+            // DEV
+            Console.WriteLine($@"Java path is {parameters.JavaPath}");
+            Console.WriteLine($@"Pref transcripts file {parameters.PreferredTranscriptsPath}");
+            Console.WriteLine($@"Analysis dir: {analysisDir}");
+
             //annotated variants
             ProcessStartInfo annotateSnpEff = new ProcessStartInfo
             {

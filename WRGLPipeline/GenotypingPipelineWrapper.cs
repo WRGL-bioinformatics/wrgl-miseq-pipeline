@@ -122,7 +122,7 @@ namespace WRGLPipeline
             }
 
             // DEV: test if transferring the BAM files works nicely here
-            if (parameters.BamDownload)
+            if ((parameters.BamDownload) && (parameters.CopyToNetwork))
             {
                 // Create the run folder in the Genotyping BAM store
                 string RunBamStore = $@"{parameters.BamStoreLocation}\Genotyping\{parameters.RunID}";
@@ -166,6 +166,7 @@ namespace WRGLPipeline
             GenerateGenotypingVCFs.CompressVariants(parameters, sampleSheet, analysisDir);
 
             //annotated variants
+            Console.WriteLine($@"Analysis directory: {analysisDir}");
             ParseVCF annotatedVCFFile = GenerateGenotypingVCFs.CallSNPEff(parameters, analysisDir);
 
             //get minimum depth for each amplicon

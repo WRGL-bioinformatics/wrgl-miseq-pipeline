@@ -131,7 +131,7 @@ namespace WRGLPipeline
                     //AuxillaryFunctions.SendRunCompletionEmail(parameters.localLogFilename, parameters.getPanelRepo + @"\" + Path.GetFileName(localReportFilename), sampleSheet, @"Panel_" + PanelPipelineVerison, parameters.runID, parameters);
 
                     // Download BAM files unless otherwise specified by the user.
-                    if ( parameters.BamDownload)
+                    if ((parameters.BamDownload) && (parameters.CopyToNetwork))
                     {
                         DownloadBamsToLocalStore();
                     }

@@ -55,10 +55,12 @@ namespace WRGLPipeline
                 throw new FileNotFoundException();
             }
 
-            //populate fields
+            // Populate fields
+            // NOTE: "Investigator Name" is 'investigator name' in LRM samplesheet, but it's not really important
             this.SampleRecords = PopulateSampleSheetEntries();
             this.ExperimentName = GetSampleSheetField("Experiment Name");
             this.InvestigatorName = GetSampleSheetField("Investigator Name");
+
             // For Myeloid runs, the "Analysis" information is under the heading of "Manifests"
             // although it is otherwise the same. This situation should probably raise a more
             // informative error message if the field isn't present - it took a long time to figure it out.
@@ -180,6 +182,8 @@ namespace WRGLPipeline
 
         /// <summary>
         /// Reads a specified header field from the SampleSheet
+        /// This is called several times for different fields, which is obviously inefficient
+        /// but the file size is so small that it really makes a negligable difference.
         /// </summary>
         /// <param name="field">Name of field to find</param>
         /// <returns>Value of the specified field from the SampleSheet</returns>

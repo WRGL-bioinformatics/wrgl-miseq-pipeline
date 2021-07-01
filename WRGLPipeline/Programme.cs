@@ -25,7 +25,7 @@ namespace WRGLPipeline
                 // Any parameters derived from these values (except for panel/genotyping-specific ones)
                 // are also created by the ProgrammeParameters constructor.
                 // DEV: TODO: Ensure that all variables have appropriate properties
-                ProgrammeParameters parameters = new ProgrammeParameters();
+                ProgrammeParameters parameters; // = new ProgrammeParameters();
                 try
                 {
                     parameters = new ProgrammeParameters(args);
@@ -49,6 +49,9 @@ namespace WRGLPipeline
                     Console.WriteLine(e);
                     throw;
                 }
+
+                //DEV
+                Console.WriteLine("DEV: SampleSheet read succesfully.");
                 // Write these parameters to the logfile (for reference if needed)
                 // DEV: localLogFilename should be in parameters
                 //      and the "0" log code should probably be the default...
