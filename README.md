@@ -3,9 +3,14 @@
 C# pipeline that runs on MiSeq completion and manages data through either panels
 or genotyping pipelines.
 
+### Patch 2021-07-01
+
+ * To resolve samplesheet changes introduced by Local Run Manager.
+
 ### Patch 2021-05-27
 
  * To address crashing caused by failed samples following Pisces updates.
+ * Win10 MiSeq update changes - now works across both sequencers.
 
 ### Bam-Download updated
 
