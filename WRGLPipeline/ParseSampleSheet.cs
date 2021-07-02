@@ -238,7 +238,7 @@ namespace WRGLPipeline
         private string GetSingleLineField(string line, string field)
         {
             // Add the string "^" to ensure that the regex matches only at the start of a line
-            Regex FieldNameRgx = new Regex(@"^" + field);
+            Regex FieldNameRgx = new Regex(@"^" + field, RegexOptions.IgnoreCase);
             if (FieldNameRgx.IsMatch(line))
             {
                 // Split the CSV line into a list -  this is <key>,<value> so
@@ -265,8 +265,8 @@ namespace WRGLPipeline
         {
             Dictionary<string, string> _analyses = new Dictionary<string, string>();
             // NOTE: the square brackets need to be escaped in a Regex!
-            Regex HeadingNameRgx = new Regex(@"^\[" + field + @"\]");
-            Regex NextHeadingRgz = new Regex(@"^\[");
+            Regex HeadingNameRgx = new Regex(@"^\[" + field + @"\]", RegexOptions.IgnoreCase);
+            Regex NextHeadingRgz = new Regex(@"^\[", RegexOptions.IgnoreCase);
             if (HeadingNameRgx.IsMatch(line))
             {
                 // Heading found, read all following lines
