@@ -190,7 +190,7 @@ namespace WRGLPipeline
 
             // Check for an underscore in the SuppliedDir
             // This indicates an LRM run, which can then be processed differently
-            if (new DirectoryInfo(SuppliedDir).Name.ToString().Contains("_"))
+            if (new DirectoryInfo(SuppliedDir).Name.ToString().Contains("Alignment_"))
             {
                 SuppliedDir = FileManagement.PrepLRMRun(SuppliedDir);
             }

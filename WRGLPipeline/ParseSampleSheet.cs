@@ -82,10 +82,8 @@ namespace WRGLPipeline
                     Dictionary<string, string> _analyses = new Dictionary<string, string>();
                     _analyses.Add(GetSampleSheetField("AnalysisType"),GetSampleSheetField("Reference"));
                     this.Analyses = _analyses;
-                }
-                
-            }
-            
+                }                
+            }            
         }
 
         /// <summary>
