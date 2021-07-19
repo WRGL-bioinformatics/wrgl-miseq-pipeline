@@ -204,7 +204,7 @@ namespace WRGLPipeline
             // Create the correct Alignment folder
             // For a LRM run the passed alignmentDir should be the alignment_1 folder, so the
             // parent of that is the root run directory
-            string runFolder = Directory.GetParent(alignmentDir).FullName;
+            string runFolder = Directory.GetParent(Directory.GetParent(alignmentDir).FullName).FullName;
             string newFastqFolder = $@"{runFolder}\Data\Intensities\Basecalls";
             string newAlignmentFolder = $@"{newFastqFolder}\Alignment";
             Console.WriteLine($@"INFO: Creating a new alignment folder: {newAlignmentFolder}");

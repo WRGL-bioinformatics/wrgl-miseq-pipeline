@@ -190,7 +190,9 @@ namespace WRGLPipeline
 
             // Check for an underscore in the SuppliedDir
             // This indicates an LRM run, which can then be processed differently
-            if (new DirectoryInfo(SuppliedDir).Name.ToString().Contains("Alignment_"))
+            Console.WriteLine($@"DEV: SuppliedDir is {SuppliedDir}");
+            Console.WriteLine($@"DEV: LRM check is looking at folder {new DirectoryInfo(SuppliedDir).Name}");
+            if (new DirectoryInfo(SuppliedDir).FullName.Contains("Alignment_"))
             {
                 SuppliedDir = FileManagement.PrepLRMRun(SuppliedDir);
             }

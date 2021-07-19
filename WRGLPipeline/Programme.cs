@@ -50,9 +50,6 @@ namespace WRGLPipeline
                     throw;
                 }
 
-                //DEV
-                Console.WriteLine("DEV: SampleSheet read succesfully.");
-                
                 // Write these parameters to the logfile (for reference if needed)
                 // DEV: localLogFilename should be in parameters
                 //      and the "0" log code should probably be the default...
@@ -67,7 +64,6 @@ namespace WRGLPipeline
                 AuxillaryFunctions.WriteLog(@"Local SampleSheet path: " + parameters.SampleSheetPath, parameters.LocalLogFilename, 0, false, parameters);
                 AuxillaryFunctions.WriteLog(@"Experiment name: " + sampleSheet.ExperimentName, parameters.LocalLogFilename, 0, false, parameters);
                 AuxillaryFunctions.WriteLog(@"Investigator name: " + sampleSheet.InvestigatorName, parameters.LocalLogFilename, 0, false, parameters);
-                foreach (KeyValuePair<string, string> pair in sampleSheet.Analyses){ Console.WriteLine(@"DEV: Analysis type: " + pair.Key + "," + pair.Value); }
                 AuxillaryFunctions.WriteLog(@"GetData mode: " + parameters.GetData, parameters.LocalLogFilename, 0, false, parameters);
                 AuxillaryFunctions.WriteLog(@"Copy to network: " + parameters.CopyToNetwork, parameters.LocalLogFilename, 0, false, parameters);
 

@@ -79,8 +79,10 @@ namespace WRGLPipeline
                 {
                     // DEV: I think I'll need to change "analysis" to something else in the LRM format
                     //      SampleSheet, to avoid a clash with the old-style [Analysis] section
-                    Dictionary<string, string> _analyses = new Dictionary<string, string>();
-                    _analyses.Add(GetSampleSheetField("AnalysisType"),GetSampleSheetField("Reference"));
+                    Dictionary<string, string> _analyses = new Dictionary<string, string>
+                    {
+                        { GetSampleSheetField("AnalysisType"), GetSampleSheetField("Reference") }
+                    };
                     this.Analyses = _analyses;
                 }                
             }            
