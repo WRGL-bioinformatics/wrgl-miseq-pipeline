@@ -64,15 +64,28 @@ namespace WRGLPipeline
             // For Myeloid runs, the "Analysis" information is under the heading of "Manifests"
             // although it is otherwise the same. This situation should probably raise a more
             // informative error message if the field isn't present - it took a long time to figure it out.
+            // LRM drops the Analysis section in the SampleSheet, so we'll need to handle that...
             try
             {
                 this.Analyses = GetSampleSheetField("Analysis");
             }
             catch
             {
-                this.Analyses = GetSampleSheetField("Manifests");
-            }
-            
+                try
+                {
+                    this.Analyses = GetSampleSheetField("Manifests");
+                }
+                catch
+                {
+                    // DEV: I think I'll need to change "analysis" to something else in the LRM format
+                    //      SampleSheet, to avoid a clash with the old-style [Analysis] section
+                    Dictionary<string, string> _analyses = new Dictionary<string, string>
+                    {
+                        { GetSampleSheetField("AnalysisType"), GetSampleSheetField("Reference") }
+                    };
+                    this.Analyses = _analyses;
+                }                
+            }            
         }
 
         /// <summary>
@@ -139,11 +152,13 @@ namespace WRGLPipeline
                                 // NOTE: Analysis field is assigned using `condition ? consequent : alternative` operators
                                 //       If there is an "Analysis" key present, assign that value or an empty string if not
                                 // DEV: There must be more "correct" way of doing this, or at least better than having an empty string?
-                                //      Maybe just use "null"?
+                                //      Maybe just use "null"
+                                // UPDATE: To account for LRM changes, the fallback is now the "Description" field, where we are putting
+                                //         the anaysis type so that it survives the LRM samplesheet modifications.
                                 SampleRecord tempRecord = new SampleRecord(sampleid: fields[ColumnHeaders[@"Sample_ID"]],
                                                                            samplename: fields[ColumnHeaders[@"Sample_Name"]],
                                                                            samplenumber: n,
-                                                                           analysis: ColumnHeaders.ContainsKey(@"Analysis") ? fields[ColumnHeaders[@"Analysis"]] : "");
+                                                                           analysis: ColumnHeaders.ContainsKey(@"Analysis") ? fields[ColumnHeaders[@"Analysis"]] : fields[ColumnHeaders[@"Description"]]);
                                 _sampleRecords.Add(tempRecord);
                             }                           
                             // Increment the sample counter - we can't do a for loop here as we don't know in advance
@@ -223,7 +238,7 @@ namespace WRGLPipeline
         private string GetSingleLineField(string line, string field)
         {
             // Add the string "^" to ensure that the regex matches only at the start of a line
-            Regex FieldNameRgx = new Regex(@"^" + field);
+            Regex FieldNameRgx = new Regex(@"^" + field, RegexOptions.IgnoreCase);
             if (FieldNameRgx.IsMatch(line))
             {
                 // Split the CSV line into a list -  this is <key>,<value> so
@@ -250,8 +265,8 @@ namespace WRGLPipeline
         {
             Dictionary<string, string> _analyses = new Dictionary<string, string>();
             // NOTE: the square brackets need to be escaped in a Regex!
-            Regex HeadingNameRgx = new Regex(@"^\[" + field + @"\]");
-            Regex NextHeadingRgz = new Regex(@"^\[");
+            Regex HeadingNameRgx = new Regex(@"^\[" + field + @"\]", RegexOptions.IgnoreCase);
+            Regex NextHeadingRgz = new Regex(@"^\[", RegexOptions.IgnoreCase);
             if (HeadingNameRgx.IsMatch(line))
             {
                 // Heading found, read all following lines

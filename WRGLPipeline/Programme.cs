@@ -50,8 +50,6 @@ namespace WRGLPipeline
                     throw;
                 }
 
-                //DEV
-                Console.WriteLine("DEV: SampleSheet read succesfully.");
                 // Write these parameters to the logfile (for reference if needed)
                 // DEV: localLogFilename should be in parameters
                 //      and the "0" log code should probably be the default...

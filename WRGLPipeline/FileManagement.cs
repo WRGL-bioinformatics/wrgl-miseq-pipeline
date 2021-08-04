@@ -202,7 +202,9 @@ namespace WRGLPipeline
             Console.WriteLine("INFO: This run looks like it was created with LRM, and needs to be modified");
 
             // Create the correct Alignment folder
-            string runFolder = Directory.GetParent(alignmentDir).FullName;
+            // For a LRM run the passed alignmentDir should be the alignment_1 folder, so the
+            // parent of that is the root run directory
+            string runFolder = Directory.GetParent(Directory.GetParent(alignmentDir).FullName).FullName;
             string newFastqFolder = $@"{runFolder}\Data\Intensities\Basecalls";
             string newAlignmentFolder = $@"{newFastqFolder}\Alignment";
             Console.WriteLine($@"INFO: Creating a new alignment folder: {newAlignmentFolder}");
@@ -211,9 +213,9 @@ namespace WRGLPipeline
             // There should be a subfolder of the LRM Alignment folder with the date of analysis
             // This contains the other needed files (e.g. fastqs, SampleSheet)
             // Get this folder and then copy these files to the new alignment and fastq folders
-            var subDirectories = Directory.GetDirectories(alignmentDir);
-            string alignmentSubDir = subDirectories[0];
-            string fastqFolder = $@"{alignmentSubDir}\Fastq";
+            //var subDirectories = Directory.GetDirectories(alignmentDir);
+            //string alignmentSubDir = subDirectories[0];
+            string fastqFolder = $@"{alignmentDir}\Fastq";
 
             // Copy the FASTQs
             Console.WriteLine($@"INFO: Copying fastq files from {fastqFolder}");
@@ -227,8 +229,8 @@ namespace WRGLPipeline
             };
 
             // Copy the remaining needed files
-            System.IO.File.Copy($@"{alignmentSubDir}\SampleSheetUsed.csv", $@"{newAlignmentFolder}\SampleSheetUsed.csv");
-            System.IO.File.Copy($@"{alignmentSubDir}\DemultiplexSummaryF1L1.txt", $@"{newAlignmentFolder}\DemultiplexSummaryF1L1.txt");
+            System.IO.File.Copy($@"{alignmentDir}\SampleSheetUsed.csv", $@"{newAlignmentFolder}\SampleSheetUsed.csv");
+            System.IO.File.Copy($@"{alignmentDir}\DemultiplexSummaryF1L1.txt", $@"{newAlignmentFolder}\DemultiplexSummaryF1L1.txt");
 
             // return the new alignment directory, so the rest of the process can
             // proceed as before
