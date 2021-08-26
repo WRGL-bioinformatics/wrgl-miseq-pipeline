@@ -93,21 +93,21 @@ namespace WRGLPipeline
                 }
             }
 
-            //delete MiSeqOutput
-            string[] outputSubfolders = Directory.GetDirectories(@"D:\Illumina\MiSeqOutput");
-            foreach (string dir in outputSubfolders)
-            {
-                try
-                {
-                    AuxillaryFunctions.WriteLog(@"Deleting folder: " + dir, parameters.LocalLogFilename, 0, false, parameters);
-                    ForceDeleteDirectory(dir);
-                }
-                catch (Exception e)
-                {
-                    AuxillaryFunctions.WriteLog(@"Could not delete folder: " + e.ToString(), parameters.LocalLogFilename, -1, false, parameters);
-                }
-            }
+            // delete MiSeqOutput
+            // DEV: Delete for just this run (as now running several close together)
 
+
+            string[] outputSubfolders = Directory.GetDirectories(@"D:\Illumina\MiSeqOutput");
+            string outputRunDir = @"D:\Illumina\MiSeqOutput\" + parameters.RunID ;
+            try
+            {
+                AuxillaryFunctions.WriteLog(@"Deleting folder: " + outputRunDir, parameters.LocalLogFilename, 0, false, parameters);
+                ForceDeleteDirectory(outputRunDir);
+            }
+            catch (Exception e)
+            {
+                AuxillaryFunctions.WriteLog(@"Could not delete folder: " + e.ToString(), parameters.LocalLogFilename, -1, false, parameters);
+            }
         }
 
         /// <summary>

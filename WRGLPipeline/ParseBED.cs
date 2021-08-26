@@ -114,12 +114,15 @@ namespace WRGLPipeline
         /// <returns></returns>
         private bool ValidateBED(string line)
         {
-            string[] fields = line.Split('\t');
-            // split the line 
-            if (line == "")
+            // Check for a blank line or a comment line
+            if (line == "" || line.StartsWith(@"#") )
             {
                 return false;
-            }            
+            }
+
+            // split the line 
+            string[] fields = line.Split('\t');
+
             // Check if there are (at least) the minimum number of required fields
             // DEV: If these both print the same message, then maybe wrap the checks in 
             //      a try/catch and re-raise in the catch. I want the tests to be separate,
