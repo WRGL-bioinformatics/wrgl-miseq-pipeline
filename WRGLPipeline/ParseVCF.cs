@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.IO;
+using System.Linq;
 
 namespace WRGLPipeline
 {
@@ -203,33 +204,33 @@ namespace WRGLPipeline
                 VCFRecords.Add("", new List<VCFRecordWithGenotype>());
             }
 
-            // Run through each variant in the body of the VCF file
+            // Run through each variant in the body of the VCF file, skipping any comment lines
             // DEV: I wonder if it might be more memory efficient to do this from a StreamReader...
             foreach (string line in VCFBody)
             {
                 string[] fields = line.Split('\t');
+
+                // Create the base VCFRecord assuming no sample genotypes
+                // Doing this here saves having to create a new one for each sample
+                VCFRecordWithGenotype VCFRecordTemp = new VCFRecordWithGenotype(CHROM: fields[0], POS: int.Parse(fields[1]), ID: fields[2], REF: fields[3],
+                                                                                    ALT: fields[4], QUAL: fields[5] == "." ? 0 : Convert.ToDouble(fields[5]),
+                                                                                    FILTER: fields[6], INFO: fields[7] == "." ? new Dictionary<string, string>() : ExtractInfoBody(fields[7]),
+                                                                                    FORMAT: new Dictionary<string, string>());
+
                 if (hasGenotypes == true)
                 {
                     // Iterate over sample IDs by the header column, create a new VCFRecordWithGenotype from each samples
                     // FORMAT data (and the overall variant data)
                     for (int k = 9; k < VCFHeader.Count; ++k) //skip common headers
                     {
-                        VCFRecordWithGenotype VCFRecordTemp = new VCFRecordWithGenotype(CHROM: fields[0], POS: int.Parse(fields[1]), ID: fields[2], REF: fields[3],
-                                                                                        ALT: fields[4], QUAL: fields[5] == "." ? 0 : Convert.ToDouble(fields[5]),
-                                                                                        FILTER: fields[6], INFO: fields[7] == "." ? new Dictionary<string, string>() : ExtractInfoBody(fields[7]),
-                                                                                        FORMAT: fields[k] == "." ? new Dictionary<string, string>() : ExtractFormatBody(fields[8], fields[k]));
+                        // Update the temp record, rather than instantiating a new one for each sample
+                        VCFRecordTemp.FORMAT = fields[k] == "." ? new Dictionary<string, string>() : ExtractFormatBody(fields[8], fields[k]);
                         //bank struct by Sample_ID
                         VCFRecords[VCFHeader[k]].Add(VCFRecordTemp);
                     }
                 }
                 else
                 {
-                    // The update for a single genotype-less sample (e.g. BCInterpretations) is almost identical, except that
-                    // the FORMAT field must be an empty dictionary.
-                    VCFRecordWithGenotype VCFRecordTemp = new VCFRecordWithGenotype(CHROM: fields[0], POS: int.Parse(fields[1]), ID: fields[2], REF: fields[3],
-                                                                                    ALT: fields[4], QUAL: fields[5] == "." ? 0 : Convert.ToDouble(fields[5]),
-                                                                                    FILTER: fields[6], INFO: fields[7] == "." ? new Dictionary<string, string>() : ExtractInfoBody(fields[7]),
-                                                                                    FORMAT: new Dictionary<string, string>());
                     //bank struct by Sample_ID
                     VCFRecords[""].Add(VCFRecordTemp);
                 }
