@@ -357,8 +357,11 @@ namespace WRGLPipeline
             piscesVariantCallerParameters.Append(@"--minvq 20 ");
             piscesVariantCallerParameters.Append(@"--maxvq 100 ");
             // This was set according the the SVC parameters, but 20 is apparently outisde the range for Pisces,
-            // which has a minimum of 1000.
-            piscesVariantCallerParameters.Append(@"--mindpfilter 1000 ");
+            // which has a minimum of 1000. Link it to the GenotyingDepth option so that it can be changed without
+            // causing errors here.
+            piscesVariantCallerParameters.Append(@"--mindpfilter ");
+            piscesVariantCallerParameters.Append(parameters.GenotypingDepth);
+            piscesVariantCallerParameters.Append(@" ");
             // DEV: trying this out at the same depth as the genotyping FAIL threshold
             // TODO: If keeping this setting, get the min depth from the params.
             piscesVariantCallerParameters.Append(@"--mindp ");
