@@ -233,8 +233,8 @@ namespace WRGLPipeline
             SampleSheetPath = SuppliedDir + @"\SampleSheetUsed.csv";
             // If the Alignment fodler samplesheet doesn't exist, use the one in the run folder root.
             if ( ! File.Exists(SampleSheetPath))
-            {                
-                SampleSheetPath = $@"{LocalRootRunDir}\SampleSheetUsed.csv"
+            {
+                SampleSheetPath = $@"{LocalRootRunDir}\SampleSheetUsed.csv";
             }
 
             // Get the directory in which the executable file is present when run
