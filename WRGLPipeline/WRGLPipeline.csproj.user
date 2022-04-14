@@ -3,12 +3,14 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
     <StartArguments>--skipCopyToNetwork D:\Illumina\MiSeqAnalysis\210716_M00321_0017_000000000-JP5BF\Alignment_2\20210719_093208</StartArguments>
     <StartAction>Program</StartAction>
-    <StartProgram>C:\Users\sbsUser\Source\Repos\WRGLPipeline\WRGLPipeline\bin\Debug\bin\WRGLPipeline.exe</StartProgram>
+    <StartProgram>C:\Users\ben\Source\Repos\wrgl-miseq-pipeline\WRGLPipeline\bin\Debug\bin\WRGLPipeline.exe</StartProgram>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
     <StartArguments>--getData --skipCopyToNetwork D:\Illumina\MiSeqAnalysis\210409_M00321_0539_000000000-JK3LF\Data\Intensities\BaseCalls\Alignment</StartArguments>
     <StartWorkingDirectory>
     </StartWorkingDirectory>
+    <StartAction>Program</StartAction>
+    <StartProgram>C:\Users\ben\Source\Repos\wrgl-miseq-pipeline\WRGLPipeline\bin\Debug\bin\WRGLPipeline.exe</StartProgram>
   </PropertyGroup>
   <PropertyGroup>
     <PublishUrlHistory>publish\</PublishUrlHistory>

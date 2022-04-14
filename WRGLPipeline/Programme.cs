@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -6,18 +6,16 @@ namespace WRGLPipeline
 {
     class Programme
     {
-        /// <summary>
-        /// Overall pipeline version number - must be manually updated and should match GitLab tags.
-        /// DEV: might want to set as a string rather than double, to allow major.minor.increment format.
-        /// </summary>
-        public const double WRGLversion = 2.3;
-        
+        // DEV: The pipeline version number is now set in the WRGLPipline.ini
+
         /// <summary>
         /// Main function
         /// </summary>
         /// <param name="args">System arguments from command line</param>
         private static void Main(string[] args)
         {
+            // Set a non-zero exit code for *anything* other than reaching the end of Main successfully.
+            Environment.ExitCode = -1;
             try
             {
                 // ProgrammeParameters holds all relevant parameters for the pipeline
@@ -55,17 +53,17 @@ namespace WRGLPipeline
                 //      and the "0" log code should probably be the default...
                 //      and the first run boolean should probably also be handled by the log function...
                 //      Also parameters should be set when the logger is created. And the logger should be a class/object.
-                AuxillaryFunctions.WriteLog(@"Run identifier: " + parameters.RunID, parameters.LocalLogFilename, 0, true, parameters);
-                AuxillaryFunctions.WriteLog(@"Target BED file: " + parameters.CoreBedFile, parameters.LocalLogFilename, 0, false, parameters);
-                AuxillaryFunctions.WriteLog(@"Local FASTQ directory: " + parameters.LocalFastqDir, parameters.LocalLogFilename, 0, false, parameters);
-                AuxillaryFunctions.WriteLog(@"Local MiSeq analysis directory: " + parameters.LocalMiSeqAnalysisDir, parameters.LocalLogFilename, 0, false, parameters);
-                AuxillaryFunctions.WriteLog(@"Local output directory: " + parameters.LocalRootRunDir, parameters.LocalLogFilename, 0, false, parameters);
-                AuxillaryFunctions.WriteLog(@"Network output directory: " + parameters.NetworkRootRunDir, parameters.LocalLogFilename, 0, false, parameters);
-                AuxillaryFunctions.WriteLog(@"Local SampleSheet path: " + parameters.SampleSheetPath, parameters.LocalLogFilename, 0, false, parameters);
-                AuxillaryFunctions.WriteLog(@"Experiment name: " + sampleSheet.ExperimentName, parameters.LocalLogFilename, 0, false, parameters);
-                AuxillaryFunctions.WriteLog(@"Investigator name: " + sampleSheet.InvestigatorName, parameters.LocalLogFilename, 0, false, parameters);
-                AuxillaryFunctions.WriteLog(@"GetData mode: " + parameters.GetData, parameters.LocalLogFilename, 0, false, parameters);
-                AuxillaryFunctions.WriteLog(@"Copy to network: " + parameters.CopyToNetwork, parameters.LocalLogFilename, 0, false, parameters);
+                AuxillaryFunctions.WriteLog($"Run identifier: {parameters.RunID}", parameters, firstUse: true);
+                AuxillaryFunctions.WriteLog($"Target BED file: {parameters.CoreBedFile}", parameters);
+                AuxillaryFunctions.WriteLog($"Local FASTQ directory: {parameters.LocalFastqDir}", parameters);
+                AuxillaryFunctions.WriteLog($"Local MiSeq analysis directory: {parameters.LocalMiSeqAnalysisDir}", parameters);
+                AuxillaryFunctions.WriteLog($"Local output directory: {parameters.LocalRootRunDir}", parameters);
+                AuxillaryFunctions.WriteLog($"Network output directory: {parameters.NetworkRootRunDir}", parameters);
+                AuxillaryFunctions.WriteLog($"Local SampleSheet path: {parameters.SampleSheetPath}", parameters);
+                AuxillaryFunctions.WriteLog($"Experiment name: {sampleSheet.ExperimentName}", parameters);
+                AuxillaryFunctions.WriteLog($"Investigator name: {sampleSheet.InvestigatorName}", parameters);
+                AuxillaryFunctions.WriteLog($"GetData mode: {parameters.GetData}", parameters);
+                AuxillaryFunctions.WriteLog($"Copy to network: {parameters.CopyToNetwork}", parameters);
 
                 // Create the network folder for the run (unless set not to copy to the network)
                 // Do this in all cases - both full and get data.
@@ -92,7 +90,7 @@ namespace WRGLPipeline
                     } catch (Exception e)
                     {
                         // DEV
-                        AuxillaryFunctions.WriteLog("An error occurred while reading Fastq file names. This is ok for myeloid runs", parameters.LocalLogFilename, 1, false, parameters);
+                        AuxillaryFunctions.WriteLog("An error occurred while reading Fastq file names. This is ok for myeloid runs", parameters, errorCode: 1);
                         Console.WriteLine("Couldn't get fastq file names");
                         Console.WriteLine(e);
                     }
@@ -106,18 +104,15 @@ namespace WRGLPipeline
                     {
                         new PanelPipelineWrapper(sampleSheet, parameters, fastqFileNames);
                     }
-                    else if (sampleSheet.Analyses.ContainsKey("A"))
+                    else if (sampleSheet.Analyses.ContainsKey("manifest0"))
                     {
-                        // "A" analyses will be analysed by MiSeq Reporter, but this should still run on completion.
-                        // Most are likely to be myeloid panel runs, which we want to copy to the network and create
-                        // coverage summaries for automatically.
-                        // Assume that any "A" is myeloid and run the wrapper. If it's not right, it won't matter as this is non-destructive.
+                        // LRM-style samplesheets now use manifest0 as the Myeloid identifier
                         new MyeloidPipelineWrapper(sampleSheet, parameters);
                     }
                     else
                     {
                         // Log that the analysis type wasn't recognised, and then allow to run as this should reach the end and close
-                        AuxillaryFunctions.WriteLog("Analysis type was not recognised.", parameters.LocalLogFilename, -1, false, parameters);
+                        AuxillaryFunctions.WriteLog("Analysis type was not recognised.", parameters, errorCode: -1);
                     }
                 }
 
@@ -135,7 +130,10 @@ namespace WRGLPipeline
                 }
 
                 // If complete, write to the log
-                AuxillaryFunctions.WriteLog("Analysis completed.", parameters.LocalLogFilename, 0, false, parameters);
+                AuxillaryFunctions.WriteLog("Analysis completed.", parameters);
+
+                // Force a 0 exit code on success
+                Environment.Exit(0);
             }
             catch (Exception e)
             {
@@ -143,8 +141,8 @@ namespace WRGLPipeline
                 {
                     // We have to re-load the parameters here, as the previous try block is out of scope
                     ProgrammeParameters parameters = new ProgrammeParameters(args);
-                    AuxillaryFunctions.WriteLog("An error occured. Exception details as follows:", parameters.LocalLogFilename, -1, false, parameters);
-                    AuxillaryFunctions.WriteLog(e.ToString(), parameters.LocalLogFilename, -1, false, parameters);
+                    AuxillaryFunctions.WriteLog("An error occured. Exception details as follows:", parameters, errorCode: -1);
+                    AuxillaryFunctions.WriteLog(e.ToString(), parameters, errorCode: -1);
                 }
                 catch
                 {
@@ -154,6 +152,8 @@ namespace WRGLPipeline
                     Console.WriteLine("");
                     Console.WriteLine(e.ToString());
                 }
+                // kill the program with an explicitly non-zero exit code on any unhandled error.
+                Environment.Exit(-1);
             }
         }
 
@@ -175,19 +175,19 @@ namespace WRGLPipeline
                 // Get FASTQ filenames - 
                 if (record.Sample_Name == "")
                 {
-                    read1Files = Directory.GetFiles(parameters.LocalFastqDir, record.Sample_ID + @"_*_R1_*.fastq.gz");
-                    read2Files = Directory.GetFiles(parameters.LocalFastqDir, record.Sample_ID + @"_*_R2_*.fastq.gz");
+                    read1Files = Directory.GetFiles(parameters.LocalFastqDir, $@"{record.Sample_ID}_*_R1_*.fastq.gz");
+                    read2Files = Directory.GetFiles(parameters.LocalFastqDir, $@"{record.Sample_ID}_*_R2_*.fastq.gz");
                 }
                 else
                 {
-                    read1Files = Directory.GetFiles(parameters.LocalFastqDir, record.Sample_Name + @"_*_R1_*.fastq.gz");
-                    read2Files = Directory.GetFiles(parameters.LocalFastqDir, record.Sample_Name + @"_*_R2_*.fastq.gz");
+                    read1Files = Directory.GetFiles(parameters.LocalFastqDir, $@"{record.Sample_Name}_*_R1_*.fastq.gz");
+                    read2Files = Directory.GetFiles(parameters.LocalFastqDir, $@"{record.Sample_Name}_*_R2_*.fastq.gz");
                 }
                 // No paired-end FASTQs found for this Sample_ID
                 // All samples MUST have read data, so throw an error if this happens
                 if (read1Files.Length == 0 || read2Files.Length == 0)
                 {
-                    AuxillaryFunctions.WriteLog(@"Paired-end FASTQ file(s) not found for " + record.Sample_ID, parameters.LocalLogFilename, -1, false, parameters);
+                    AuxillaryFunctions.WriteLog($@"Paired-end FASTQ file(s) not found for {record.Sample_ID}", parameters, errorCode: -1);
                     throw new FileNotFoundException();
                 }
                 // Store the results

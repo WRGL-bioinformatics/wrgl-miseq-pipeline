@@ -51,7 +51,7 @@ namespace WRGLPipeline
             // If the samplesheet doesn't exist then raise an exception.
             if (!File.Exists(parameters.SampleSheetPath))
             {
-                AuxillaryFunctions.WriteLog(parameters.SampleSheetPath + @" does not exist!", parameters.LocalLogFilename, -1, true, parameters);
+                AuxillaryFunctions.WriteLog($@"{parameters.SampleSheetPath} does not exist!", parameters, errorCode: -1);
                 throw new FileNotFoundException();
             }
 
@@ -94,7 +94,7 @@ namespace WRGLPipeline
         /// </summary>
         private List<SampleRecord> PopulateSampleSheetEntries()
         {
-            List<SampleRecord> _sampleRecords = new List<SampleRecord>();
+            List<SampleRecord> sampleRecords = new List<SampleRecord>();
             string line;
             int n = 0;
             bool passedDataHeader = false;
@@ -105,72 +105,70 @@ namespace WRGLPipeline
             // Separate FileStream and StreamReader usings are needed to ensure that we can open
             // files that are open elsewhere - this has caused problems in the past
             using (FileStream stream = new FileStream(parameters.SampleSheetPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (StreamReader SampleSheet = new StreamReader(stream))
             {
-                using (StreamReader SampleSheet = new StreamReader(stream))
+                //Continue to read until you reach end of file
+                while ((line = SampleSheet.ReadLine()) != null)
                 {
-                    //Continue to read until you reach end of file
-                    while ((line = SampleSheet.ReadLine()) != null)
+                    if (BlankLine(line))
                     {
-                        if (BlankLine(line))
-                        {
-                            continue;
-                        }
-                        // Skip lines before [Data] by matching the following regex pattern
-                        // I think this avoid any problems with trailing commas that just a straight
-                        // string match might encounter
-                        Regex dataRgx = new Regex(@"Data");
-                        if (dataRgx.IsMatch(line) && passedDataHeader == false)
-                        {
-                            passedDataHeader = true;
-                            continue;
-                        }
+                        continue;
+                    }
+                    // Skip lines before [Data] by matching the following regex pattern
+                    // I think this avoid any problems with trailing commas that just a straight
+                    // string match might encounter
+                    Regex dataRgx = new Regex(@"Data");
+                    if (dataRgx.IsMatch(line) && passedDataHeader == false)
+                    {
+                        passedDataHeader = true;
+                        continue;
+                    }
 
-                        // On sample section
-                        if (passedDataHeader == true)
+                    // On sample section
+                    if (passedDataHeader == true)
+                    {
+                        // After the section header, the first row (n == 0) is the column header row
+                        // So first those need to be read
+                        if (n == 0)
                         {
-                            // After the section header, the first row (n == 0) is the column header row
-                            // So first those need to be read
-                            if (n == 0)
+                            // This gives and index for the foreach, which doesn't exist by default
+                            // This is then stored as <column name>:<index> so that we can look up the index
+                            // of a given column later. While not *strictly* needed, this does allow us to
+                            // account for SampleSheets with different ordering or numbers of columns
+                            // Lifted from https://stackoverflow.com/questions/521687/foreach-with-index
+                            foreach (var field in line.Split(',').Select((x, i) => new { Value = x, Index = i }))
                             {
-                                // This gives and index for the foreach, which doesn't exist by default
-                                // This is then stored as <column name>:<index> so that we can look up the index
-                                // of a given column later. While not *strictly* needed, this does allow us to
-                                // account for SampleSheets with different ordering or numbers of columns
-                                // Lifted from https://stackoverflow.com/questions/521687/foreach-with-index
-                                foreach (var field in line.Split(',').Select((x, i) => new { Value = x, Index = i }))
-                                {
-                                    ColumnHeaders.Add(field.Value, field.Index);
-                                }
-                                //continue;
+                                ColumnHeaders.Add(field.Value, field.Index);
                             }
-                            else
-                            {
-                                //on sample info. split CSV fields
-                                string [] fields = line.Split(',');
-
-                                // Store the sample details in a SampleRecord
-                                // NOTE: Analysis field is assigned using `condition ? consequent : alternative` operators
-                                //       If there is an "Analysis" key present, assign that value or an empty string if not
-                                // DEV: There must be more "correct" way of doing this, or at least better than having an empty string?
-                                //      Maybe just use "null"
-                                // UPDATE: To account for LRM changes, the fallback is now the "Description" field, where we are putting
-                                //         the anaysis type so that it survives the LRM samplesheet modifications.
-                                SampleRecord tempRecord = new SampleRecord(sampleid: fields[ColumnHeaders[@"Sample_ID"]],
-                                                                           samplename: fields[ColumnHeaders[@"Sample_Name"]],
-                                                                           samplenumber: n,
-                                                                           analysis: ColumnHeaders.ContainsKey(@"Analysis") ? fields[ColumnHeaders[@"Analysis"]] : fields[ColumnHeaders[@"Description"]]);
-                                _sampleRecords.Add(tempRecord);
-                            }                           
-                            // Increment the sample counter - we can't do a for loop here as we don't know in advance
-                            // how many samples there are. That could be a possible update but would require reading through
-                            // the SampleSheet beforehand to find out. Which isn't exactly terrible given how long it is, but it
-                            // *is* a little unecessary. Although it might make comprehension clearer here.
-                            n++;
+                            //continue;
                         }
+                        else
+                        {
+                            //on sample info. split CSV fields
+                            string [] fields = line.Split(',');
+
+                            // Store the sample details in a SampleRecord
+                            // NOTE: Analysis field is assigned using `condition ? consequent : alternative` operators
+                            //       If there is an "Analysis" key present, assign that value or an empty string if not
+                            // DEV: There must be more "correct" way of doing this, or at least better than having an empty string?
+                            //      Maybe just use "null"
+                            // UPDATE: To account for LRM changes, the fallback is now the "Description" field, where we are putting
+                            //         the anaysis type so that it survives the LRM samplesheet modifications.
+                            SampleRecord tempRecord = new SampleRecord(sampleid: fields[ColumnHeaders[@"Sample_ID"]],
+                                                                        samplename: fields[ColumnHeaders[@"Sample_Name"]],
+                                                                        samplenumber: n,
+                                                                        analysis: ColumnHeaders.ContainsKey(@"Analysis") ? fields[ColumnHeaders[@"Analysis"]] : fields[ColumnHeaders[@"Description"]]);
+                            sampleRecords.Add(tempRecord);
+                        }                           
+                        // Increment the sample counter - we can't do a for loop here as we don't know in advance
+                        // how many samples there are. That could be a possible update but would require reading through
+                        // the SampleSheet beforehand to find out. Which isn't exactly terrible given how long it is, but it
+                        // *is* a little unecessary. Although it might make comprehension clearer here.
+                        n++;
                     }
                 }
             }
-            return _sampleRecords;
+            return sampleRecords;
         }
 
         /// <summary>
@@ -204,29 +202,26 @@ namespace WRGLPipeline
         /// <returns>Value of the specified field from the SampleSheet</returns>
         private dynamic GetSampleSheetField(string field)
         {
-            string line;
-            dynamic temp;
-
             //Pass the file path and file name to the StreamReader constructor
             using (FileStream stream = new FileStream(parameters.SampleSheetPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (StreamReader SampleSheet = new StreamReader(stream))
             {
-                using (StreamReader SampleSheet = new StreamReader(stream))
+                string line;
+                dynamic temp;
+                //Continue to read until you reach end of file
+                while ((line = SampleSheet.ReadLine()) != null)
                 {
-                    //Continue to read until you reach end of file
-                    while ((line = SampleSheet.ReadLine()) != null)
+                    temp = GetSingleLineField(line, field);
+                    if (temp != null) { return temp;  }
+                    else
                     {
-                        temp = GetSingleLineField(line, field);
-                        if (temp != null) { return temp;  }
-                        else
-                        {
-                            temp = GetAnalysisFields(line, field, SampleSheet);
-                            if (temp != null) { return temp; }
-                        }
+                        temp = GetAnalysisFields(line, field, SampleSheet);
+                        if (temp != null) { return temp; }
                     }
                 }
             }
             // If nothing matches, we will get to here so return the default "Unspecified" value
-            return @"Unspecified";
+            return "Unspecified";
         }
        
         /// <summary>
@@ -291,7 +286,7 @@ namespace WRGLPipeline
                             }
                             catch (System.ArgumentException)
                             {
-                                AuxillaryFunctions.WriteLog("Only one instance of a given panel may exist in a single SampleSheet", parameters.LocalLogFilename, -1, false, parameters);
+                                AuxillaryFunctions.WriteLog("Only one instance of a given panel may exist in a single SampleSheet", parameters, errorCode: -1);
                                 throw;
                             }
                         }
