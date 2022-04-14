@@ -163,7 +163,7 @@ namespace WRGLPipeline
             this.VCFPath = VCFPath;
             this.parameters = parameters;
 
-            AuxillaryFunctions.WriteLog(@"Parsing " + VCFPath, parameters.LocalLogFilename, 0, false, parameters);
+            AuxillaryFunctions.WriteLog(@"Parsing " + VCFPath, parameters);
 
             // Moved from GetVCFRecordsWithGenotypes to constructor.
             // DEV: These seem like they could be quite difficult to write tests for without a bit of a
@@ -250,36 +250,34 @@ namespace WRGLPipeline
             string VCFLine;
 
             // Read the file and display it line by line.
-            using(FileStream stream = new FileStream(VCFPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (FileStream stream = new FileStream(VCFPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (StreamReader file = new StreamReader(stream))
             {
-                using (StreamReader file = new StreamReader(stream))
+                while ((VCFLine = file.ReadLine()) != null)
                 {
-                    while ((VCFLine = file.ReadLine()) != null)
+                    if (VCFLine == "")
                     {
-                        if (VCFLine == "")
+                        continue;
+                    }
+                    else if (FirstLine == true)
+                    {
+                        // DEV: TODO: There is now a version 4.3
+                        //            We should probably extract the version number double, and check that
+                        //            it is not *below* 4.1? OR add in a latest tested version and check it is
+                        //            between those values, just in case future VCF specs have breaking changes.
+                        if (VCFLine != "##fileformat=VCFv4.1" && VCFLine != "##fileformat=VCFv4.2")
                         {
-                            continue;
+                            AuxillaryFunctions.WriteLog(@"File format not VCF v4.1 or v4.2, Parser may not function correctly", parameters, errorCode: 1);
                         }
-                        else if (FirstLine == true)
-                        {
-                            // DEV: TODO: There is now a version 4.3
-                            //            We should probably extract the version number double, and check that
-                            //            it is not *below* 4.1? OR add in a latest tested version and check it is
-                            //            between those values, just in case future VCF specs have breaking changes.
-                            if (VCFLine != "##fileformat=VCFv4.1" && VCFLine != "##fileformat=VCFv4.2")
-                            {
-                                AuxillaryFunctions.WriteLog(@"File format not VCF v4.1 or v4.2, Parser may not function correctly", parameters.LocalLogFilename, 1, false, parameters);
-                            }
-                            FirstLine = false;
-                        }
-                        else if (VCFLine[0] == '#')
-                        {
-                            VCFMetaLines.Add(VCFLine);
-                        }
-                        else
-                        {
-                            VCFBody.Add(VCFLine);
-                        }
+                        FirstLine = false;
+                    }
+                    else if (VCFLine[0] == '#')
+                    {
+                        VCFMetaLines.Add(VCFLine);
+                    }
+                    else
+                    {
+                        VCFBody.Add(VCFLine);
                     }
                 }
             }
@@ -305,7 +303,7 @@ namespace WRGLPipeline
             //      But first it needs to be re-written to return a bool.
             if (VCFHeader.Count < 8)
             {
-                AuxillaryFunctions.WriteLog(@"Malformed VCF. Too few column headers.", parameters.LocalLogFilename, -1, false, parameters);
+                AuxillaryFunctions.WriteLog(@"Malformed VCF. Too few column headers.", parameters, errorCode: -1);
                 throw new FormatException();
             }
             // Fields 8 & 9 are the INFO and FORMAT columns respectively. FORMAT may or may not be present,
@@ -315,7 +313,7 @@ namespace WRGLPipeline
             // processed data
             else if (VCFHeader.Count == 8 || VCFHeader.Count == 9)
             {
-                AuxillaryFunctions.WriteLog(@"VCF has no genotypes", parameters.LocalLogFilename, 1, false, parameters);
+                AuxillaryFunctions.WriteLog(@"VCF has no genotypes", parameters, errorCode: 1);
             }
             else
             {
@@ -329,22 +327,23 @@ namespace WRGLPipeline
         /// <remarks>Why isn't this called when the headers are split?</remarks>
         private void CheckColumnHeaders()
         {
-            int n = 0;
-
-            // Check the overall
+            // Check the overall number of columns
             if (VCFHeader.Count < 8)
             {
-                AuxillaryFunctions.WriteLog(@"Malformed VCF. Too few column headers.", parameters.LocalLogFilename, -1, false, parameters);
+                AuxillaryFunctions.WriteLog(@"Malformed VCF. Too few column headers.", parameters, errorCode: -1);
                 throw new FormatException();
             }
 
+            // DEV: Is there some kind of enumerate function we could use here to loop through all the headers
+            //      without having to manually use the counter variable n?
+            int n = 0;
             foreach (string header in VCFHeader)
             {
                 if (n == 0)
                 {
                     if (header != "#CHROM")
                     {
-                        AuxillaryFunctions.WriteLog(@"Malformed VCF. Incorrect column header format.", parameters.LocalLogFilename, -1, false, parameters);
+                        AuxillaryFunctions.WriteLog(@"Malformed VCF. Incorrect column header format.", parameters, errorCode: -1);
                         throw new FormatException();
                     }
                 }
@@ -352,7 +351,7 @@ namespace WRGLPipeline
                 {
                     if (header != "POS")
                     {
-                        AuxillaryFunctions.WriteLog(@"Malformed VCF. Incorrect column header format.", parameters.LocalLogFilename, -1, false, parameters);
+                        AuxillaryFunctions.WriteLog(@"Malformed VCF. Incorrect column header format.", parameters, errorCode: -1);
                         throw new FormatException();
                     }
                 }
@@ -360,7 +359,7 @@ namespace WRGLPipeline
                 {
                     if (header != "ID")
                     {
-                        AuxillaryFunctions.WriteLog(@"Malformed VCF. Incorrect column header format.", parameters.LocalLogFilename, -1, false, parameters);
+                        AuxillaryFunctions.WriteLog(@"Malformed VCF. Incorrect column header format.",parameters, errorCode: -1);
                         throw new FormatException();
                     }
                 }
@@ -368,7 +367,7 @@ namespace WRGLPipeline
                 {
                     if (header != "REF")
                     {
-                        AuxillaryFunctions.WriteLog(@"Malformed VCF. Incorrect column header format.", parameters.LocalLogFilename, -1, false, parameters);
+                        AuxillaryFunctions.WriteLog(@"Malformed VCF. Incorrect column header format.", parameters, errorCode: -1);
                         throw new FormatException();
                     }
                 }
@@ -376,7 +375,7 @@ namespace WRGLPipeline
                 {
                     if (header != "ALT")
                     {
-                        AuxillaryFunctions.WriteLog(@"Malformed VCF. Incorrect column header format.", parameters.LocalLogFilename, -1, false, parameters);
+                        AuxillaryFunctions.WriteLog(@"Malformed VCF. Incorrect column header format.", parameters, errorCode: -1);
                         throw new FormatException();
                     }
                 }
@@ -384,7 +383,7 @@ namespace WRGLPipeline
                 {
                     if (header != "QUAL")
                     {
-                        AuxillaryFunctions.WriteLog(@"Malformed VCF. Incorrect column header format.", parameters.LocalLogFilename, -1, false, parameters);
+                        AuxillaryFunctions.WriteLog(@"Malformed VCF. Incorrect column header format.", parameters, errorCode: -1);
                         throw new FormatException();
                     }
                 }
@@ -392,7 +391,7 @@ namespace WRGLPipeline
                 {
                     if (header != "FILTER")
                     {
-                        AuxillaryFunctions.WriteLog(@"Malformed VCF. Incorrect column header format.", parameters.LocalLogFilename, -1, false, parameters);
+                        AuxillaryFunctions.WriteLog(@"Malformed VCF. Incorrect column header format.", parameters, errorCode: -1);
                         throw new FormatException();
                     }
                 }
@@ -400,7 +399,7 @@ namespace WRGLPipeline
                 {
                     if (header != "INFO")
                     {
-                        AuxillaryFunctions.WriteLog(@"Malformed VCF. Incorrect column header format.", parameters.LocalLogFilename, -1, false, parameters);
+                        AuxillaryFunctions.WriteLog(@"Malformed VCF. Incorrect column header format.", parameters, errorCode: -1);
                         throw new FormatException();
                     }
                 }
@@ -408,13 +407,12 @@ namespace WRGLPipeline
                 {
                     if (header != "FORMAT")
                     {
-                        AuxillaryFunctions.WriteLog(@"Malformed VCF. Incorrect column header format.", parameters.LocalLogFilename, -1, false, parameters);
+                        AuxillaryFunctions.WriteLog(@"Malformed VCF. Incorrect column header format.", parameters, errorCode: -1);
                         throw new FormatException();
                     }
-                    
-                    break; //no point checking after column 8 (these are sample specific)
+                    // There is no point checking after column 8 (these are sample specific)
+                    break; 
                 }
-
                 ++n;
             }
         }
@@ -492,9 +490,11 @@ namespace WRGLPipeline
             //      formatHeaders is derived from the variant FORMAT field, and although this can vary
             //      between variants I've never seen it change between samples at the same variant?
             //      If this is actually invalid VCF then it should perhaps throw an exception instead??
-            if (fields.Length != values.Length) //missing values
+            if (fields.Length != values.Length) 
             {
-                AuxillaryFunctions.WriteLog(@"Some genotype fields are missing values, blank values reported", parameters.LocalLogFilename, 1, false, parameters);
+                // There are missing values
+                // DEV: For now suppress this warning
+                //AuxillaryFunctions.WriteLog(@"Some genotype fields are missing values, blank values reported", parameters, errorCode: 1);
                 // Add genotype column
                 // First column is always GT
                 formatSubFields.Add(fields[0], values[0]);
@@ -511,11 +511,6 @@ namespace WRGLPipeline
                     formatSubFields.Add(fields[n], values[n]);
                 }
             }
-            //ensure all format headers are in the headers set
-            //foreach (string fieldHeader in fields)
-            //{
-            //    formatRecordHeaders.Add(fieldHeader);
-            //}
             return formatSubFields;
         }
 
@@ -538,7 +533,8 @@ namespace WRGLPipeline
                 //iterate over variants
                 foreach (VCFRecordWithGenotype record in iter.Value)
                 {
-                    if (record.INFO.ContainsKey(@"EFF") == true) //annotation available for this variant
+                    // An EFF annotation is available for this variant
+                    if (record.INFO.ContainsKey(@"EFF"))
                     {
                         //make genomic variant key
                         GenomicVariant tempGenomicVariant = new GenomicVariant(CHROM: record.CHROM, POS: record.POS, REF: record.REF, ALT: record.ALT);
@@ -582,6 +578,12 @@ namespace WRGLPipeline
                                 SnpEffAnnotations[tempGenomicVariant].Add(tempAnnotation);
                             }
                         }
+                    }
+                    else
+                    {
+                        // No EFF-format annotation found
+                        // Move on to the next variant/sample
+                        continue;
                     }
                 }
             }

@@ -1,4 +1,4 @@
- using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
@@ -24,14 +24,27 @@ namespace WRGLPipeline
         //       enforce the immutability more by *only* allowing the value to be set
         //       by a constructor.
 
+        // [PipelineVersions]
+        public string PipelineManagerVersion { get; private set; }
+        public string PanelsAnalysisVersion { get; private set; }
+        public string GenotypingAnalysisVersion { get; private set; }
+        public string PipelineVersionForReport { get; private set; }
         // [PanelAnalysis]
         public string CoreBedFile { get; private set; }
         public string SotonUserName { get; private set; }
         public string SSHHostKey { get; private set; }
-        public string IridisHostKey { get; private set; }
+        public string Iridis5aHostName { get; private set; }
+        public string Iridis5aHostKey { get; private set; }
+        public string Iridis5bHostName { get; private set; }
+        public string Iridis5bHostKey { get; private set; }
+        public string Iridis5cHostName { get; private set; }
+        public string Iridis5cHostKey { get; private set; }
+        public string SSHHostName { get; private set; }
+        public string IridisWorkingDir { get; private set; }
         public string PanelScriptsDir { get; private set; }
         public string InterpretationsFile { get; private set; }
         public string PanelRepo { get; private set; }
+        public string CNVRepo { get; private set; }
         public bool GetData { get; private set; } = false; //if we want to run GetData only or a full UploadAndExecute analysis. Set false by default.
         public bool BamDownload { get; private set; } = true;
 
@@ -123,13 +136,27 @@ namespace WRGLPipeline
 
             // Populate parameters from ini (NOTE: access with <section>:<key> string)
 
+            // [PipelineVersions]
+            PipelineManagerVersion = config["PipelineVersions:PipelineManagerVersion"];
+            PanelsAnalysisVersion = config["PipelineVersions:PanelsAnalysisVersion"];
+            GenotypingAnalysisVersion = config["PipelineVersions:GenotypingAnalysisVersion"];
+            PipelineVersionForReport = config["PipelineVersions:PipelineVersionForReport"];
+
             // [PanelAnalysis]
             CoreBedFile = config["PanelAnalysis:CoreFile"];
             SotonUserName = config["PanelAnalysis:Username"];
             SSHHostKey = config["PanelAnalysis:SSHHostKey"];
-            IridisHostKey = config["PanelAnalysis:IridisHostKey"];
+            Iridis5aHostName = config["PanelAnalysis:Iridis5aHostName"];
+            Iridis5aHostKey = config["PanelAnalysis:Iridis5aHostKey"];
+            Iridis5bHostName = config["PanelAnalysis:Iridis5bHostName"];
+            Iridis5bHostKey = config["PanelAnalysis:Iridis5bHostKey"];
+            Iridis5cHostName = config["PanelAnalysis:Iridis5cHostName"];
+            Iridis5cHostKey = config["PanelAnalysis:Iridis5cHostKey"];
+            SSHHostName = config["PanelAnalysis:SSHHostName"];
+            IridisWorkingDir = config["PanelAnalysis:IridisWorkingDir"];
             PanelScriptsDir = config["PanelAnalysis:PanelScriptsDir"];
             PanelRepo = config["PanelAnalysis:PanelRepository"];
+            CNVRepo = config["PanelAnalysis:CNVRepository"];
 
             // [GenotypingAnalysis]
             GenotypingReferenceFolderPath = config["GenotypingAnalysis:b37Folder"];
@@ -198,11 +225,17 @@ namespace WRGLPipeline
 
             // Load the remaining parameters derived from the suppliedDir argument
             LocalFastqDir = AuxillaryFunctions.GetFastqDir(SuppliedDir);
-            SampleSheetPath = SuppliedDir + @"\SampleSheetUsed.csv";LocalRootRunDir = AuxillaryFunctions.GetRootRunDir(SuppliedDir);
+            LocalRootRunDir = AuxillaryFunctions.GetRootRunDir(SuppliedDir);
             LocalMiSeqAnalysisDir = AuxillaryFunctions.GetLocalAnalysisFolderDir(SuppliedDir);
             RunID = AuxillaryFunctions.GetRunID(SuppliedDir);
             NetworkRootRunDir = NetworkDirectory + @"\" + RunID;
             LocalLogFilename = LocalRootRunDir + @"\WRGLPipeline.log";
+            SampleSheetPath = SuppliedDir + @"\SampleSheetUsed.csv";
+            // If the Alignment fodler samplesheet doesn't exist, use the one in the run folder root.
+            if ( ! File.Exists(SampleSheetPath))
+            {                
+                SampleSheetPath = $@"{LocalRootRunDir}\SampleSheetUsed.csv"
+            }
 
             // Get the directory in which the executable file is present when run
             // i.e. the full path to the \bin folder

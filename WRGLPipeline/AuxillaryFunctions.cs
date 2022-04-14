@@ -14,7 +14,7 @@ namespace WRGLPipeline
         /// <param name="networkRootRunDir">Directory for network file backup</param>
         public static string MakeNetworkOutputDir(string networkRootRunDir)
         {
-            //define networkRootRunDir
+            // Define networkRootRunDir
             if (Directory.Exists(networkRootRunDir))
             {
                 StringBuilder networkRootRunDirCompose = new StringBuilder(); //append current date and time to make folder unique
@@ -25,7 +25,7 @@ namespace WRGLPipeline
                 networkRootRunDir = networkRootRunDirCompose.ToString();
             }
 
-            //create networkRootRunDir
+            // Create networkRootRunDir
             try
             {
                 Directory.CreateDirectory(networkRootRunDir);
@@ -68,15 +68,14 @@ namespace WRGLPipeline
         /// Log function - Writes to a log file and also displays message on the console
         /// </summary>
         /// <param name="logMessage">Message to be reported</param>
-        /// <param name="logFilename">DEPRECATED - this is now found in ProgrammeParameters</param>
+        /// /// <param name="parameters">Configured ProgrammeParameters</param>
         /// <param name="errorCode">Error code to prepend to message - 0: INFO, 1: WARNING, -1: ERROR</param>
         /// <param name="firstUse">If this is the first time the logger has been used it displays a different message</param>
-        /// <param name="parameters">Configured ProgrammeParameters</param>
         /// <remarks>
         /// TODO: Put firstUse into ProgrammeParameters or just into the class namespace and see if it can be remembered that way
         /// DEV: Just for neatness, could write a function to combine the logfile and Console writes - maybe a trainee exercise?
         /// </remarks>
-        public static void WriteLog(string logMessage, string logFilename, int errorCode, bool firstUse, ProgrammeParameters parameters)
+        public static void WriteLog(string logMessage, ProgrammeParameters parameters, int errorCode = 0, bool firstUse = false)
         {
             using (StreamWriter logfile = File.AppendText(parameters.LocalLogFilename))
             {
@@ -84,8 +83,8 @@ namespace WRGLPipeline
                 // write a basic header
                 if (firstUse == true)
                 {
-                    logfile.WriteLine(@"Starting WRGL Pipeline v" + Programme.WRGLversion);
-                    Console.WriteLine(@"Starting WRGL Pipeline v" + Programme.WRGLversion);
+                    logfile.WriteLine(@"Starting WRGL Pipeline v" + parameters.PipelineManagerVersion);
+                    Console.WriteLine(@"Starting WRGL Pipeline v" + parameters.PipelineManagerVersion);
                 }
 
                 logfile.Write("{0} {1} ", DateTime.Now.ToShortDateString(), DateTime.Now.ToLongTimeString());
@@ -179,7 +178,7 @@ namespace WRGLPipeline
             string[] folders = SuppliedDir.Split('\\');
             StringBuilder tempBuilder = new StringBuilder();
 
-            //extract local run dir
+            // Extract local run dir
             for (int i = 0; i < folders.Length - 5; ++i)
             {
                 tempBuilder.Append(folders[i] + '\\');
@@ -360,7 +359,7 @@ namespace WRGLPipeline
             html.Append("</body>");
             html.Append("</html>");
 
-            //compose email
+            // Compose email
             MailMessage mail = new MailMessage
             {
                 Subject = sampleSheet.ExperimentName + @" analysis complete",
@@ -370,13 +369,13 @@ namespace WRGLPipeline
             };
             mail.Attachments.Add(new Attachment(parameters.WRGLLogoPath));
 
-            //add recipients
+            // Add recipients
             foreach (string recipient in parameters.GetEmailRecipients)
             {
                 mail.To.Add(recipient);
             }
 
-            //configure mail
+            // Configure mail
             SmtpClient smtp = new SmtpClient(@"send.nhs.net", 587)
             {
                 EnableSsl = true
@@ -384,14 +383,14 @@ namespace WRGLPipeline
             System.Net.NetworkCredential netCre = new System.Net.NetworkCredential(parameters.AdminEmailAddress, ProgrammeParameters.ToInsecureString(parameters.NHSMailPassword));
             smtp.Credentials = netCre;
 
-            //send mail
+            // Send mail
             try
             {
                 smtp.Send(mail);
             }
             catch (Exception ex)
             {
-                AuxillaryFunctions.WriteLog(@"Could not send email: " + ex.ToString(), logFilename, -1, false, parameters);
+                AuxillaryFunctions.WriteLog($@"Could not send email: {ex.ToString()}", parameters, errorCode: -1);
             }
 
         }

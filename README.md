@@ -3,6 +3,17 @@
 C# pipeline that runs on MiSeq completion and manages data through either panels
 or genotyping pipelines.
 
+Installation and related setup details in WRGL SOP 032576 on iPassport.
+
+## Version 3.0.0
+
+## Change summary
+
+* Switched default analysis platform to Iridis 5.
+* Minor bugfixes
+  * Updated interface to show messagebox on completion and if error
+  * Downloads CNV report
+
 ### Patch 2021-07-01
 
  * To resolve samplesheet changes introduced by Local Run Manager.

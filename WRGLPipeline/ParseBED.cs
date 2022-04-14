@@ -62,8 +62,7 @@ namespace WRGLPipeline
             catch
             {
                 // Log the error
-                AuxillaryFunctions.WriteLog("Could not process BED file: " + this.BEDFilePath, parameters.LocalLogFilename, -1, false, parameters);
-                // But we still want to end
+                AuxillaryFunctions.WriteLog($@"Could not process BED file: {this.BEDFilePath}", parameters, errorCode: -1);
                 throw;
             }
         }
@@ -77,30 +76,27 @@ namespace WRGLPipeline
         /// </remarks>
         private void GetBEDRecords()
         {
-            // vars to process each line 
             string line;
 
             // Open the BED file using a FileStream which *should* allow it to open files that are already opened in another program
             // and will also automatically close the connection once it's finished.
             using (FileStream stream = new FileStream(this.BEDFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (StreamReader BEDin = new StreamReader(stream))
             {
-                using (StreamReader BEDin = new StreamReader(stream))
+                // Loop through each line in the given BED file
+                while ((line = BEDin.ReadLine()) != null)
                 {
-                    // Loop through each line in the given BED file
-                    while ((line = BEDin.ReadLine()) != null)
+                    // Check that the current line is valid.
+                    // Will raise errors if appropriate
+                    if (ValidateBED(line))
                     {
-                        // Check that the current line is valid.
-                        // Will raise errors if appropriate
-                        if (ValidateBED(line))
-                        {
-                            string[] fields = line.Split('\t');
-                            BEDRecord tempBEDRecord = new BEDRecord(chromosome: fields[0],
-                                                                   start: int.Parse(fields[1]),
-                                                                    end: int.Parse(fields[2]),
-                                                                    name: fields[3]);
-                            BEDRecords.Add(tempBEDRecord);
+                        string[] fields = line.Split('\t');
+                        BEDRecord tempBEDRecord = new BEDRecord(chromosome: fields[0],
+                                                                start: int.Parse(fields[1]),
+                                                                end: int.Parse(fields[2]),
+                                                                name: fields[3]);
+                        BEDRecords.Add(tempBEDRecord);
                             
-                        }
                     }
                 }
             }
@@ -129,13 +125,13 @@ namespace WRGLPipeline
             //      as that makes it easier to document them clearly.
             if ( fields.Length < 4)
             {
-                AuxillaryFunctions.WriteLog(@"BED file " + BEDFilePath + @" is malformed. Not enough columns. Check file contains chromosome, start, end and name.", parameters.LocalLogFilename, -1, false, parameters);
+                AuxillaryFunctions.WriteLog($@"BED file {BEDFilePath} is malformed. Not enough columns. Check file contains chromosome, start, end and name.", parameters, errorCode: -1);
                 throw new FileLoadException();
             }
             // Can't have any blank fields
             if (fields[0] == "" || fields[1] == "" || fields[2] == "" || fields[3] == "")
             {
-                AuxillaryFunctions.WriteLog(@"BED file " + BEDFilePath + @" is malformed. Contains blank fields. Check file contains chromosome, start, end and name.", parameters.LocalLogFilename, -1, false, parameters);
+                AuxillaryFunctions.WriteLog($@"BED file {BEDFilePath} is malformed. Contains blank fields. Check file contains chromosome, start, end and name.", parameters, errorCode: -1);
                 throw new FileLoadException();
             }
 
@@ -143,11 +139,10 @@ namespace WRGLPipeline
             // Discard the output value
             if ( ! int.TryParse(fields[1], out _) || ! int.TryParse(fields[2], out _) )
             {
-                AuxillaryFunctions.WriteLog(@"BED file " + BEDFilePath + @" is malformed. Cannot parse position values to integer. Check file contains chromosome, start, end and name.", parameters.LocalLogFilename, -1, false, parameters);
-                AuxillaryFunctions.WriteLog(@"Values: " + fields[1] + " and " + fields[2], parameters.LocalLogFilename, -1, false, parameters);
+                AuxillaryFunctions.WriteLog($@"BED file {BEDFilePath} is malformed. Cannot parse position values to integer. Check file contains chromosome, start, end and name.", parameters, errorCode: -1);
+                AuxillaryFunctions.WriteLog($@"Affect values: {fields[1]} and {fields[2]}", parameters, errorCode: -1);
                 throw new FileLoadException();
             }
-
             // No errors? Appears to be a valid line
             return true;
         }

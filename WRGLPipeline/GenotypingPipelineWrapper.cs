@@ -9,10 +9,6 @@ namespace WRGLPipeline
 {
     class GenotypingPipelineWrapper
     {
-        // DEV: when used, replace this with the overall software version
-        const double GenotypingPipelineVerison = 2.22;
-        const double PipelineVersionForReport = 2.2;
-
         readonly private ParseSampleSheet sampleSheet;
         private string analysisDir, networkAnalysisDir, reportFilename;
         readonly private ProgrammeParameters parameters;
@@ -24,43 +20,46 @@ namespace WRGLPipeline
         /// <summary>
         /// Wraps the genotyping analysis pipeline
         /// </summary>
-        /// <param name="_sampleSheet">Parsed SampleSheet</param>
-        /// <param name="_parameters">Configured ProgrammeParameters</param>
-        /// <param name="_fastqFileNames">Dictionary of sample IDs and fastq file names</param>
-        public GenotypingPipelineWrapper(ParseSampleSheet _sampleSheet, ProgrammeParameters _parameters, Dictionary<string, Tuple<string, string>> _fastqFileNames)
+        /// <param name="sampleSheet">Parsed SampleSheet</param>
+        /// <param name="parameters">Configured ProgrammeParameters</param>
+        /// <param name="fastqFileNames">Dictionary of sample IDs and fastq file names</param>
+        public GenotypingPipelineWrapper(ParseSampleSheet sampleSheet, ProgrammeParameters parameters, Dictionary<string, Tuple<string, string>> fastqFileNames)
         {
-            this.sampleSheet = _sampleSheet;
-            this.parameters = _parameters;
-            this.fastqFileNames = _fastqFileNames;
+            this.parameters = parameters;
+            this.sampleSheet = sampleSheet;
+            this.fastqFileNames = fastqFileNames;
 
-            ExecuteGenotypingPipeline();
+            ExecuteGenotypingPipeline(parameters);
         }
 
         /// <summary>
         /// Runs the genotyping pipeline
         /// </summary>
-        private void ExecuteGenotypingPipeline()
+        private void ExecuteGenotypingPipeline(ProgrammeParameters parameters)
         {
-            // DEV: Should these folders be defined in the ProgrammeParameters?
             // Create the panel-specific analysis directories that are created within the run dir
-            analysisDir = parameters.LocalFastqDir + @"\Genotyping_" + GenotypingPipelineVerison;
-            networkAnalysisDir = parameters.NetworkRootRunDir + @"\Genotyping_" + GenotypingPipelineVerison;
-            reportFilename = analysisDir + @"\" + parameters.RunID + @"_Genotyping_" + PipelineVersionForReport + ".report";
+            analysisDir = $@"{parameters.LocalFastqDir}\Genotyping_{parameters.GenotypingAnalysisVersion}";
+            networkAnalysisDir = $@"{parameters.NetworkRootRunDir}\Genotyping_{parameters.GenotypingAnalysisVersion}";
 
-            AuxillaryFunctions.WriteLog(@"Starting genotyping pipeline...", parameters.LocalLogFilename, 0, false, parameters);
-            AuxillaryFunctions.WriteLog(@"Variant report path: " + reportFilename, parameters.LocalLogFilename, 0, false, parameters);
+            // DEV: I think the ideal thing to do is remove the version, and possibly add it in the report itself?
+            //      That would remove issues with the file not being found by other processes after an update...
+            //      Although I'd *thought* we'd added wildcards into the relevant Excel macros...
+            reportFilename = $@"{analysisDir}\{parameters.RunID}_Genotyping_{parameters.PipelineVersionForReport}.report";
 
-            //create local output analysis directory
+            AuxillaryFunctions.WriteLog(@"Starting genotyping pipeline...", parameters);
+            AuxillaryFunctions.WriteLog($@"Variant report path: {reportFilename}", parameters);
+
+            // Create the local output analysis directory
             try
             {
                 Directory.CreateDirectory(analysisDir);
             } catch (Exception e)
             {
-                AuxillaryFunctions.WriteLog(@"Could not create local Analysis directory: " + e.ToString(), parameters.LocalLogFilename, -1, false, parameters);
+                AuxillaryFunctions.WriteLog($@"Could not create local Analysis directory: {e.ToString()}", parameters, errorCode: -1);
                 throw;
             }
 
-            //create network output analysis directory - if copy to Z option is set
+            // Create network output analysis directory - if copy to Z option is set
             if (parameters.CopyToNetwork)
             {
                 try
@@ -69,12 +68,12 @@ namespace WRGLPipeline
                 }
                 catch (Exception e)
                 {
-                    AuxillaryFunctions.WriteLog(@"Could not create network Analysis directory: " + e.ToString(), parameters.LocalLogFilename, -1, false, parameters);
+                    AuxillaryFunctions.WriteLog($@"Could not create network Analysis directory: {e.ToString()}", parameters, errorCode: -1);
                     throw;
                 }
             }
 
-            //write target region BED file for GATK
+            // Write target region BED file for GATK
             GetGenotypingRegions();
 
             // Set the number of genotyping threads to keep within the maximum
@@ -86,8 +85,6 @@ namespace WRGLPipeline
                 genotypingthreads = parameters.GenotypingMaxThreads / parameters.GeminiMultiThreads;
             }
 
-            // Use Parallel.ForEach instead of ThreadPool - it may be more reliable
-            // (and is certainly simpler!)
             // Run at most the number of threads defined in the .ini file
             Parallel.ForEach(sampleSheet.SampleRecords, new ParallelOptions { MaxDegreeOfParallelism = genotypingthreads }, (SampleRecord record) =>
             {
@@ -96,29 +93,26 @@ namespace WRGLPipeline
                     // Queue tasks for multithreading
                     // Use Task.Run() as this should stay within the limits of available threads
                     // i.e. it won't try to run 96 analyses in parallel - this kills the PC!
-                    Console.WriteLine(@"Starting analysis for sample: " + record.Sample_ID.ToString());
+                    Console.WriteLine($@"Starting analysis for sample: {record.Sample_ID.ToString()}");
                     GenerateGenotypingVCFs genotypeAnalysis = new GenerateGenotypingVCFs(record, analysisDir, parameters, sampleSheet, fastqFileNames[record.Sample_ID]);
                     genotypeAnalysis.MapReads();
-                    Console.WriteLine(@"Analysis complete for sample: " + record.Sample_ID.ToString());
+                    Console.WriteLine($@"Analysis complete for sample: {record.Sample_ID.ToString()}");
                  }
             });
 
-            //call variants, annotate and tabulate
+            // Call variants, annotate and tabulate
             GenerateGenotypingVCFs.CallSomaticVariants(analysisDir, parameters);
-            WriteGenotypingReport();
+            WriteGenotypingReport(parameters);
 
-            //copy files to network
+            // Copy files to network
             if (parameters.CopyToNetwork)
             {
-                File.Copy(analysisDir + @"\GenotypingRegions.bed", networkAnalysisDir + @"\GenotypingRegions.bed");
-                File.Copy(reportFilename, networkAnalysisDir + @"\" + parameters.RunID + @"_" + GenotypingPipelineVerison + ".report");
-                File.Copy(reportFilename, parameters.GenotypingRepo + @"\" + Path.GetFileName(reportFilename));
-                // DEV: This is never really used, and it was causing problems because Pisces doesn't make the same file
-                //      Copys below weren't running because of this.
-                //File.Copy(analysisDir + @"\VariantCallingLogs\SomaticVariantCallerLog.txt", networkAnalysisDir + @"\SomaticVariantCallerLog.txt");
-                foreach (string file in Directory.GetFiles(analysisDir, @"*.log")) { File.Copy(file, networkAnalysisDir + @"\" + Path.GetFileName(file)); }
-                foreach (string file in Directory.GetFiles(analysisDir, @"*.txt")) { File.Copy(file, networkAnalysisDir + @"\" + Path.GetFileName(file)); }
-                foreach (string file in Directory.GetFiles(analysisDir, @"*.vcf")) { File.Copy(file, networkAnalysisDir + @"\" + Path.GetFileName(file)); }
+                File.Copy($@"{analysisDir}\GenotypingRegions.bed", $@"{networkAnalysisDir}\GenotypingRegions.bed");
+                File.Copy(reportFilename, $@"{networkAnalysisDir}\{parameters.RunID}_{parameters.GenotypingAnalysisVersion}.report");
+                File.Copy(reportFilename, $@"{parameters.GenotypingRepo}\{Path.GetFileName(reportFilename)}");
+                foreach (string file in Directory.GetFiles(analysisDir, @"*.log")) { File.Copy(file, $@"{networkAnalysisDir}\{Path.GetFileName(file)}"); }
+                foreach (string file in Directory.GetFiles(analysisDir, @"*.txt")) { File.Copy(file, $@"{networkAnalysisDir}\{Path.GetFileName(file)}"); }
+                foreach (string file in Directory.GetFiles(analysisDir, @"*.vcf")) { File.Copy(file, $@"{networkAnalysisDir}\{Path.GetFileName(file)}"); }
             }
 
             // DEV: test if transferring the BAM files works nicely here
@@ -134,13 +128,16 @@ namespace WRGLPipeline
                 }
                 catch
                 {
-                    AuxillaryFunctions.WriteLog(@"Could not create local BAM file store folder", parameters.LocalLogFilename, -1, false, parameters);
+                    AuxillaryFunctions.WriteLog(@"Could not create local BAM file store folder", parameters, errorCode: -1);
                     throw;
                 }
 
+                // DEV: since it supports wildcards, the following should allow us to do
+                //      BAMs and indexes in the same loop (simpler!)
+                //foreach (string file in Directory.GetFiles(analysisDir, @"*.ba*"))
                 foreach (string file in Directory.GetFiles(analysisDir, @"*.bam"))
                 {
-                    AuxillaryFunctions.WriteLog($@"Copy {Path.GetFileName(file)} to {parameters.BamStoreLocation}...", parameters.LocalLogFilename, 0, false, parameters);
+                    AuxillaryFunctions.WriteLog($@"Copy {Path.GetFileName(file)} to {parameters.BamStoreLocation}...", parameters);
                     File.Copy(file, $@"{RunBamStore}\{Path.GetFileName(file)}");
                 }
                 // TODO: See if we can do BAM and BAI together within the same loop
@@ -150,295 +147,281 @@ namespace WRGLPipeline
                 }
             }
             // DEV: Sending emails is currently not working
-            //AuxillaryFunctions.SendRunCompletionEmail(logFilename, parameters.getGenotypingRepo + @"\" + Path.GetFileName(reportFilename), sampleSheet, @"Genotyping_" + GenotypingPipelineVerison, runID, parameters);
+            //AuxillaryFunctions.SendRunCompletionEmail(parameters.LocalLogFilename, $@"{parameters.GenotypingRepo}\{Path.GetFileName(reportFilename)}", sampleSheet, $@"Genotyping_{parameters.GenotypingAnalysisVersion}", parameters.RunID, parameters);
         }
 
         /// <summary>
         /// Write the local report file, summarising the variants detected in every sample.
         /// </summary>
-        private void WriteGenotypingReport() //write output report
+        private void WriteGenotypingReport(ProgrammeParameters parameters) //write output report
         {
-            AuxillaryFunctions.WriteLog(@"Writing genotyping report...", parameters.LocalLogFilename, 0, false, parameters);
-            StreamWriter genotypingReport = new StreamWriter(reportFilename);
-            //GenomicVariant tempGenomicVariant;
+            AuxillaryFunctions.WriteLog(@"Writing genotyping report...", parameters);
 
-            //make file of unique variatns passing QC
+            // Make file of unique variants passing QC
             GenerateGenotypingVCFs.CompressVariants(parameters, sampleSheet, analysisDir);
 
-            //annotated variants
+            // Annotated variants
             Console.WriteLine($@"Analysis directory: {analysisDir}");
             ParseVCF annotatedVCFFile = GenerateGenotypingVCFs.CallSNPEff(parameters, analysisDir);
 
-            //get minimum depth for each amplicon
+            // Get minimum depth for each amplicon
             AnalyseCoverageFromAlignerOutput();
 
-            //record mutant amplicons
+            // Record mutant amplicons
             HashSet<string> mutantAmplicons = new HashSet<string>();
 
-            //write column headers
-            genotypingReport.Write("Sample_ID\t");
-            genotypingReport.Write("Sample_Name\t");
-            genotypingReport.Write("Amplicon\t");
-            genotypingReport.Write("Pipeline\t");
-            genotypingReport.Write("Result\t");
-            genotypingReport.Write("Chromosome\t");
-            genotypingReport.Write("Position\t");
-            genotypingReport.Write("ReferenceBase\t");
-            genotypingReport.Write("AlternativeBase\t");
-            genotypingReport.Write("Quality\t");
-            genotypingReport.Write("Depth\t");
-            genotypingReport.Write("ReferenceDepth\t");
-            genotypingReport.Write("AlternativeDepth\t");
-            genotypingReport.Write("VariantFrequency\t");
-            genotypingReport.Write("NoiseLevel\t");
-            genotypingReport.Write("StranBias\t");
-            genotypingReport.Write("Transcript\t");
-            genotypingReport.Write("Gene\t");
-            genotypingReport.Write("HGVSc\t");
-            genotypingReport.Write("HGVSp\t");
-            genotypingReport.Write("Exon\t");
-            genotypingReport.Write("Consequence");
-            genotypingReport.WriteLine();
-
-            //loop over SampleSheet records
-            foreach (SampleRecord sampleRecord in sampleSheet.SampleRecords)
+            using (StreamWriter genotypingReport = new StreamWriter(reportFilename))
             {
-                //skip non-genotyping analyses
-                if (sampleRecord.Analysis != "G"){
-                    continue;
-                }
+                // Write column headers (split out as one long string would be off the screen)
+                StringBuilder colHeaders = new StringBuilder();
+                colHeaders.Append("Sample_ID\t");
+                colHeaders.Append("Sample_Name\t");
+                colHeaders.Append("Amplicon\t");
+                colHeaders.Append("Pipeline\t");
+                colHeaders.Append("Result\t");
+                colHeaders.Append("Chromosome\t");
+                colHeaders.Append("Position\t");
+                colHeaders.Append("ReferenceBase\t");
+                colHeaders.Append("AlternativeBase\t");
+                colHeaders.Append("Quality\t");
+                colHeaders.Append("Depth\t");
+                colHeaders.Append("ReferenceDepth\t");
+                colHeaders.Append("AlternativeDepth\t");
+                colHeaders.Append("VariantFrequency\t");
+                colHeaders.Append("NoiseLevel\t");
+                colHeaders.Append("StranBias\t");
+                colHeaders.Append("Transcript\t");
+                colHeaders.Append("Gene\t");
+                colHeaders.Append("HGVSc\t");
+                colHeaders.Append("HGVSp\t");
+                colHeaders.Append("Exon\t");
+                colHeaders.Append("Consequence");
 
-                //parse VCF and bank entries
-                string vcffile = Directory.GetFiles(analysisDir, sampleRecord.Sample_ID + @"*.vcf")[0];
-                ParseVCF VCFFile = new ParseVCF(vcffile, parameters);
+                genotypingReport.WriteLine(colHeaders.ToString());
 
-                //loop over VCF entries
-                string sampleid = "SampleID";
-                if (parameters.GenotypingUsePisces == true)
+                // Loop over SampleSheet records
+                foreach (SampleRecord sampleRecord in sampleSheet.SampleRecords)
                 {
-                    sampleid = sampleRecord.Sample_ID + @".bam"; 
-                }
-                foreach (VCFRecordWithGenotype VCFrecord in VCFFile.VCFRecords[sampleid])
-                {
-                    //print variants that pass qc
-                    if (VCFrecord.FILTER == @"PASS" && VCFrecord.QUAL >= 30 && int.Parse(VCFrecord.INFO[@"DP"]) >= 1000)
+                    // Skip non-genotyping analyses
+                    if (sampleRecord.Analysis != "G")
                     {
-                        GenomicVariant tempGenomicVariant = new GenomicVariant(CHROM: VCFrecord.CHROM, REF: VCFrecord.REF, ALT: VCFrecord.ALT, POS: VCFrecord.POS);
-                        //tempGenomicVariant.CHROM = VCFrecord.CHROM;
-                        //tempGenomicVariant.POS = VCFrecord.POS;
-                        //tempGenomicVariant.REF = VCFrecord.REF;
-                        //tempGenomicVariant.ALT = VCFrecord.ALT;
+                        continue;
+                    }
 
-                        Tuple<string, int> gTemp = new Tuple<string, int>(VCFrecord.CHROM, VCFrecord.POS);
-                        string ampliconID = AuxillaryFunctions.LookupAmpliconID(gTemp, BEDRecords); //lookup variant amplicon
-                        string[] ADFields = VCFrecord.FORMAT["AD"].Split(',');
+                    // Parse VCF and bank entries
+                    string vcffile = Directory.GetFiles(analysisDir, $@"{sampleRecord.Sample_ID}*.vcf")[0];
+                    ParseVCF VCFFile = new ParseVCF(vcffile, parameters);
 
-                        if (ampliconMinDP[new Tuple<string, string>(sampleRecord.Sample_ID,ampliconID)] >= 1000) //amplicon has not failed; print variant
+                    // Loop over VCF entries
+                    string sampleid = "SampleID";
+                    if (parameters.GenotypingUsePisces == true)
+                    {
+                        sampleid = sampleRecord.Sample_ID + @".bam";
+                    }
+                    foreach (VCFRecordWithGenotype VCFrecord in VCFFile.VCFRecords[sampleid])
+                    {
+                        // Only print variants that pass qc limits
+                        // DEV: These should not be hard coded!
+                        if (VCFrecord.FILTER == @"PASS" && VCFrecord.QUAL >= 30 && int.Parse(VCFrecord.INFO[@"DP"]) >= 1000)
                         {
-                            //add to mutant amplicon list
-                            mutantAmplicons.Add(ampliconID);
+                            GenomicVariant tempGenomicVariant = new GenomicVariant(CHROM: VCFrecord.CHROM, REF: VCFrecord.REF, ALT: VCFrecord.ALT, POS: VCFrecord.POS);
+                            Tuple<string, int> gTemp = new Tuple<string, int>(VCFrecord.CHROM, VCFrecord.POS);
 
-                            //loop over annotations and print data
-                            if (annotatedVCFFile.SnpEffAnnotations.ContainsKey(tempGenomicVariant) == true) //annotation available for this variant
+                            // Lookup variant amplicon
+                            string ampliconID = AuxillaryFunctions.LookupAmpliconID(gTemp, BEDRecords);
+                            string[] ADFields = VCFrecord.FORMAT["AD"].Split(',');
+
+                            // Amplicon has not failed; print variant
+                            if (ampliconMinDP[new Tuple<string, string>(sampleRecord.Sample_ID, ampliconID)] >= 1000)
                             {
-                                //loop over annotations and print
-                                foreach (Annotation ann in annotatedVCFFile.SnpEffAnnotations[tempGenomicVariant])
+                                // Add to mutant amplicon list
+                                mutantAmplicons.Add(ampliconID);
+                                                              
+                                // Loop over annotations and print data
+                                if (annotatedVCFFile.SnpEffAnnotations.ContainsKey(tempGenomicVariant) == true) //annotation available for this variant
                                 {
-                                    //split HGVSc & p
-                                    string[] HGVS = ann.Amino_Acid_Change.Split('/');
-
-                                    genotypingReport.Write(sampleRecord.Sample_ID);
-                                    genotypingReport.Write("\t");
-                                    genotypingReport.Write(sampleRecord.Sample_Name);
-                                    genotypingReport.Write("\t");
-                                    genotypingReport.Write(ampliconID);
-                                    genotypingReport.Write("\t" + GenotypingPipelineVerison);
-                                    genotypingReport.Write("\tVariant");
-                                    genotypingReport.Write("\t" + VCFrecord.CHROM);
-                                    genotypingReport.Write("\t" + VCFrecord.POS);
-                                    genotypingReport.Write("\t" + VCFrecord.REF);
-                                    genotypingReport.Write("\t" + VCFrecord.ALT);
-                                    genotypingReport.Write("\t" + VCFrecord.QUAL);
-                                    genotypingReport.Write("\t" + VCFrecord.INFO["DP"]);
-                                    genotypingReport.Write("\t" + ADFields[0]);
-                                    genotypingReport.Write("\t" + ADFields[1]);
-                                    genotypingReport.Write("\t" + (Convert.ToDouble(VCFrecord.FORMAT["VF"]) * 100) + '%');
-                                    genotypingReport.Write("\t" + VCFrecord.FORMAT["NL"]); //Noise level
-                                    genotypingReport.Write("\t" + VCFrecord.FORMAT["SB"]); //Strand bias
-                                    genotypingReport.Write("\t" + ann.Transcript_ID);
-                                    genotypingReport.Write("\t" + ann.Gene_Name);
-
-                                    if (HGVS.Length > 1){ //both c. & p. are available
-                                        genotypingReport.Write("\t" + HGVS[1]);
-                                        genotypingReport.Write("\t" + HGVS[0]);
-                                    }
-                                    else
+                                    // Loop over annotations and print
+                                    foreach (Annotation ann in annotatedVCFFile.SnpEffAnnotations[tempGenomicVariant])
                                     {
-                                        genotypingReport.Write("\t" + HGVS[0]);
-                                        genotypingReport.Write("\t");
+                                        // Split HGVS c. & p. descriptions
+                                        string[] HGVS = ann.Amino_Acid_Change.Split('/');
+                                        // If there's no p. there's only on field, so we need to add a placeholder
+                                        // This happens for n. numbering, for example. The HGVS array must be resized first.
+                                        if (HGVS.Length == 1)
+                                        {
+                                            Array.Resize(ref HGVS, HGVS.Length + 1);
+                                            // The results are given reversed, so we have to switch in order
+                                            // to print c. before p.
+                                            HGVS[1] = HGVS[0];
+                                            HGVS[0] = "";
+                                        }
+
+                                        genotypingReport.Write($"{sampleRecord.Sample_ID}\t");
+                                        genotypingReport.Write($"{sampleRecord.Sample_Name}\t");
+                                        genotypingReport.Write($"{ampliconID}\t");
+                                        genotypingReport.Write($"{parameters.GenotypingAnalysisVersion}\t");
+                                        genotypingReport.Write($"Variant\t");
+                                        genotypingReport.Write($"{VCFrecord.CHROM}\t");
+                                        genotypingReport.Write($"{VCFrecord.POS}\t");
+                                        genotypingReport.Write($"{VCFrecord.REF}\t");
+                                        genotypingReport.Write($"{VCFrecord.ALT}\t");
+                                        genotypingReport.Write($"{VCFrecord.QUAL}\t");
+                                        genotypingReport.Write($"{VCFrecord.INFO["DP"]}\t");
+                                        genotypingReport.Write($"{ADFields[0]}\t");
+                                        genotypingReport.Write($"{ADFields[1]}\t");
+                                        genotypingReport.Write($"{(Convert.ToDouble(VCFrecord.FORMAT["VF"]) * 100)}%\t");
+                                        genotypingReport.Write($"{VCFrecord.FORMAT["NL"]}\t");
+                                        genotypingReport.Write($"{VCFrecord.FORMAT["SB"]}\t");
+                                        genotypingReport.Write($"{ann.Transcript_ID}\t");
+                                        genotypingReport.Write($"{ann.Gene_Name}\t");
+                                        genotypingReport.Write($"{HGVS[1]}\t{HGVS[0]}\t");
+                                        genotypingReport.WriteLine($"{ann.Exon_Rank}\t{ann.Effect}");
                                     }
-
-                                    genotypingReport.Write("\t" + ann.Exon_Rank);
-                                    genotypingReport.Write("\t" + ann.Effect);
-                                    genotypingReport.WriteLine();
                                 }
-
-                            } else { //print without annotations
-                                genotypingReport.Write(sampleRecord.Sample_ID);
-                                genotypingReport.Write("\t");
-                                genotypingReport.Write(sampleRecord.Sample_Name);
-                                genotypingReport.Write("\t");
-                                genotypingReport.Write(ampliconID);
-                                genotypingReport.Write("\t" + GenotypingPipelineVerison);
-                                genotypingReport.Write("\tVariant");
-                                genotypingReport.Write("\t" + VCFrecord.CHROM);
-                                genotypingReport.Write("\t" + VCFrecord.POS);
-                                genotypingReport.Write("\t" + VCFrecord.REF);
-                                genotypingReport.Write("\t" + VCFrecord.ALT);
-                                genotypingReport.Write("\t" + VCFrecord.QUAL);
-                                genotypingReport.Write("\t" + VCFrecord.INFO["DP"]);
-                                genotypingReport.Write("\t" + ADFields[0]);
-                                genotypingReport.Write("\t" + ADFields[1]);
-                                genotypingReport.Write("\t" + (Convert.ToDouble(VCFrecord.FORMAT["VF"]) * 100) + '%');
-                                genotypingReport.Write("\t" + VCFrecord.FORMAT["NL"]); //Noise level
-                                genotypingReport.Write("\t" + VCFrecord.FORMAT["SB"]); //Strand bias
-                                genotypingReport.WriteLine();
+                                else
+                                {
+                                    // Print without annotations
+                                    genotypingReport.Write($"{sampleRecord.Sample_ID}\t");
+                                    genotypingReport.Write($"{sampleRecord.Sample_Name}\t");
+                                    genotypingReport.Write($"{ampliconID}\t");
+                                    genotypingReport.Write($"{parameters.GenotypingAnalysisVersion}\t");
+                                    genotypingReport.Write($"Variant\t");
+                                    genotypingReport.Write($"{VCFrecord.CHROM}\t");
+                                    genotypingReport.Write($"{VCFrecord.POS}\t");
+                                    genotypingReport.Write($"{VCFrecord.REF}\t");
+                                    genotypingReport.Write($"{VCFrecord.ALT}\t");
+                                    genotypingReport.Write($"{ VCFrecord.QUAL}\t");
+                                    genotypingReport.Write($"{VCFrecord.INFO["DP"]}\t");
+                                    genotypingReport.Write($"{ADFields[0]}\t{ADFields[1]}\t");
+                                    genotypingReport.Write($"{(Convert.ToDouble(VCFrecord.FORMAT["VF"]) * 100)}%\t");
+                                    genotypingReport.WriteLine($"{VCFrecord.FORMAT["NL"]}\t{VCFrecord.FORMAT["SB"]}");
+                                }
                             }
                         }
                     }
-                } //done reading VCF
 
-                //print Normal/Fail
-                foreach (BEDRecord region in BEDRecords) //iterate over all amplicons
-                {
-                    try
+                    // Print Normal/Fail
+                    foreach (BEDRecord region in BEDRecords)
                     {
-                        regiondepth = ampliconMinDP[new Tuple<string, string>(sampleRecord.Sample_ID, region.Name)];
-                    }
-                    catch
-                    {
-                        regiondepth = 0;
-                    }
-                    if (mutantAmplicons.Contains(region.Name) == true)
-                    {
-                        continue; //skip mutant amplicons
-                    }
-                    else if (regiondepth < parameters.GenotypingDepth)  //this amplicon failed
-                    {
-                        genotypingReport.Write(sampleRecord.Sample_ID);
-                        genotypingReport.Write("\t");
-                        genotypingReport.Write(sampleRecord.Sample_Name);
-                        genotypingReport.Write("\t" + region.Name);
-                        genotypingReport.Write("\t" + GenotypingPipelineVerison);
-                        genotypingReport.Write("\tFailed\t\t\t\t\t\t");
-                        genotypingReport.Write(regiondepth);
-                        genotypingReport.WriteLine();
-                    }
-                    else //normal
-                    {
-                        genotypingReport.Write(sampleRecord.Sample_ID);
-                        genotypingReport.Write("\t");
-                        genotypingReport.Write(sampleRecord.Sample_Name);
-                        genotypingReport.Write("\t" + region.Name);
-                        genotypingReport.Write("\t" + GenotypingPipelineVerison);
-                        genotypingReport.Write("\tNo Mutation Detected\t\t\t\t\t\t");
-                        genotypingReport.Write(regiondepth);
-                        genotypingReport.WriteLine();
-                    }
+                        try
+                        {
+                            regiondepth = ampliconMinDP[new Tuple<string, string>(sampleRecord.Sample_ID, region.Name)];
+                        }
+                        catch
+                        {
+                            regiondepth = 0;
+                        }
+                        if (mutantAmplicons.Contains(region.Name) == true)
+                        {
+                            // Skip mutant amplicons
+                            continue;
+                        }
+                        else if (regiondepth < parameters.GenotypingDepth)
+                        {
+                            // This amplicon failed
+                            genotypingReport.Write(sampleRecord.Sample_ID);
+                            genotypingReport.Write("\t");
+                            genotypingReport.Write(sampleRecord.Sample_Name);
+                            genotypingReport.Write("\t" + region.Name);
+                            genotypingReport.Write("\t" + parameters.GenotypingAnalysisVersion);
+                            genotypingReport.Write("\tFailed\t\t\t\t\t\t");
+                            genotypingReport.Write(regiondepth);
+                            genotypingReport.WriteLine();
+                        }
+                        else
+                        {
+                            // Passing amplicon
+                            genotypingReport.Write(sampleRecord.Sample_ID);
+                            genotypingReport.Write("\t");
+                            genotypingReport.Write(sampleRecord.Sample_Name);
+                            genotypingReport.Write("\t" + region.Name);
+                            genotypingReport.Write("\t" + parameters.GenotypingAnalysisVersion);
+                            genotypingReport.Write("\tNo Mutation Detected\t\t\t\t\t\t");
+                            genotypingReport.Write(regiondepth);
+                            genotypingReport.WriteLine();
+                        }
 
+                    }
+                    // Reset mutant amplicons
+                    mutantAmplicons.Clear();
                 }
-
-                //reset mutant amplicons
-                mutantAmplicons.Clear();
-
-            } //done looping over samples
-
-            genotypingReport.Close();
+            }
         }
 
         /// <summary>
         /// Generates a BED file from the AmpliconAligner input file
         /// </summary>
-        private void GetGenotypingRegions() //output BED file for accessory programmes & write to memory
+        private void GetGenotypingRegions()
         {
             bool passedFirstHeader = false;
             string line;
             string[] fields;
-            StreamReader ampliconAlignerV2Inputreader = new StreamReader(sampleSheet.Analyses["G"]);
-            StreamWriter GenotypingRegionsBED = new StreamWriter(analysisDir + @"\GenotypingRegions.bed");
 
-            while ((line = ampliconAlignerV2Inputreader.ReadLine()) != null)
+            using (StreamWriter GenotypingRegionsBED = new StreamWriter($@"{analysisDir}\GenotypingRegions.bed"))
+            using (StreamReader ampliconAlignerV2Inputreader = new StreamReader(sampleSheet.Analyses["G"]))
             {
-                if (line != "")
+                // DEV: Could the line !- "" check go in here as a single line? Would remove an indent 
+                while ((line = ampliconAlignerV2Inputreader.ReadLine()) != null)
                 {
-                    if (line[0] == '#'){
-
-                        if (passedFirstHeader == false)
-                        {
-                            passedFirstHeader = true;
-                            continue;
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
-
-                    fields = line.Split('\t');
-
-                    if (fields.Length != 7)
+                    if (line != "")
                     {
-                        AuxillaryFunctions.WriteLog(@"AmpliconAligner input file is malformed. Check number of columns", parameters.LocalLogFilename, -1, false, parameters);
-                        throw new FileLoadException();
-                    }
-
-                    int startPos;
-                    int endPos;
-                    int seqLen = fields[3].Length; //sequence length
-
-                    // DEV: "checked" means that the wrapped code is protected against integer overflow
-                    //      It's probably not necessary, as 32bit integers max out at 2,147,483,647 and there
-                    //      are no human chromosomes that long. But maybe g. values could reach that high?
-                    checked
-                    {                      
-                        startPos = int.Parse(fields[2]) - 1; //0-based start
-                        endPos = startPos + seqLen;
-                        // Start and end coordinates must be reversed if the region is defined on
-                        // the negative strand
-                        // DEV: shouls this check be added to the ParseBed class? Probably.
-                        if (fields[6] == @"+")
+                        if (line[0] == '#')
                         {
-                            startPos += int.Parse(fields[4]);
-                            endPos -= int.Parse(fields[5]);
+
+                            if (passedFirstHeader == false)
+                            {
+                                passedFirstHeader = true;
+                                continue;
+                            }
+                            else
+                            {
+                                break;
+                            }
                         }
-                        else
+                        
+                        // Check the input file has the expected number of fields
+                        fields = line.Split('\t');
+                        if (fields.Length != 7)
                         {
-                            startPos += int.Parse(fields[5]);
-                            endPos -= int.Parse(fields[4]);
-                            
+                            AuxillaryFunctions.WriteLog(@"AmpliconAligner input file is malformed. Check number of columns", parameters, errorCode: -1);
+                            throw new FileLoadException();
                         }
+                        // DEV: "checked" means that the wrapped code is protected against integer overflow
+                        //      It's probably not necessary, as 32bit integers max out at 2,147,483,647 and there
+                        //      are no human chromosomes that long. But maybe g. values could reach that high?
+                        // OR we could use 64bit ints and remove the need for this wrapping.
+                        checked
+                        {
+                            // 0-based start
+                            int startPos = int.Parse(fields[2]) - 1;
+                            // Field 3 is the sequence length, so we can compute the end position
+                            int seqLen = fields[3].Length;
+                            int endPos = startPos + seqLen;
+                            // Start and end coordinates must be reversed if the region is defined on
+                            // the negative strand
+                            // DEV: shouls this check be added to the ParseBed class? Probably.
+                            if (fields[6] == @"+")
+                            {
+                                startPos += int.Parse(fields[4]);
+                                endPos -= int.Parse(fields[5]);
+                            }
+                            else
+                            {
+                                startPos += int.Parse(fields[5]);
+                                endPos -= int.Parse(fields[4]);
 
+                            }
+                            BEDRecord tempRecord = new BEDRecord(chromosome: fields[1],
+                                                                start: startPos,
+                                                                end: endPos,
+                                                                name: fields[0]);
+                            BEDRecords.Add(tempRecord);
+                            // DEV: This could be neatened up further by defining the way a BEDRecord prints
+                            GenotypingRegionsBED.WriteLine($"{tempRecord.Chromosome}\t{tempRecord.Start}\t{tempRecord.End}\t{tempRecord.Name}");
+                        }
                     }
-
-                    BEDRecord tempRecord = new BEDRecord(chromosome: fields[1],
-                                                         start: startPos,
-                                                         end: endPos,
-                                                         name: fields[0]);
-                    BEDRecords.Add(tempRecord);
-
-                    GenotypingRegionsBED.Write(tempRecord.Chromosome);
-                    GenotypingRegionsBED.Write("\t");
-                    GenotypingRegionsBED.Write(tempRecord.Start);
-                    GenotypingRegionsBED.Write("\t");
-                    GenotypingRegionsBED.Write(tempRecord.End);
-                    GenotypingRegionsBED.Write("\t");
-                    GenotypingRegionsBED.Write(tempRecord.Name);
-                    GenotypingRegionsBED.Write("\n");
                 }
             }
-
-            GenotypingRegionsBED.Close();
-
         }
 
         /// <summary>
@@ -446,10 +429,10 @@ namespace WRGLPipeline
         /// </summary>
         private void AnalyseCoverageFromAlignerOutput()
         {
-            AuxillaryFunctions.WriteLog(@"Calculating coverage values...", parameters.LocalLogFilename, 0, false, parameters);
+            AuxillaryFunctions.WriteLog(@"Calculating coverage values...", parameters);
             string line;
 
-            //loop over sampleIDs
+            // Loop over sampleIDs
             foreach (SampleRecord record in sampleSheet.SampleRecords)
             {
                 if (record.Analysis != "G")
@@ -457,21 +440,19 @@ namespace WRGLPipeline
                     continue;
                 }
                 // Read the MappingStats file
-                using (FileStream stream = new FileStream(analysisDir + @"\" + record.Sample_ID + @"_MappingStats.txt", FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (FileStream stream = new FileStream($@"{analysisDir}\{record.Sample_ID}_MappingStats.txt", FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (StreamReader ampliconAlignerStatsFile = new StreamReader(stream))
                 {
-                    using (StreamReader ampliconAlignerStatsFile = new StreamReader(stream))
+                    while ((line = ampliconAlignerStatsFile.ReadLine()) != null)
                     {
-                        while ((line = ampliconAlignerStatsFile.ReadLine()) != null)
+                        if (line == "" || line[0] == '#')
                         {
-                            if (line == "" || line[0] == '#')
-                            {
-                                continue;
-                            }
-                            else
-                            {
-                                string[] fields = line.Split('\t');
-                                ampliconMinDP.Add(new Tuple<string, string>(record.Sample_ID, fields[0]), int.Parse(fields[3])); //mappedReads
-                            }
+                            continue;
+                        }
+                        else
+                        {
+                            string[] fields = line.Split('\t');
+                            ampliconMinDP.Add(new Tuple<string, string>(record.Sample_ID, fields[0]), int.Parse(fields[3]));
                         }
                     }
                 }
